@@ -50,6 +50,7 @@ export function ResultSummary({ state }: ResultSummaryProps) {
 
   const steps = state.correctGuesses.length;
   const optimalSteps = state.optimalPath.length - 2;
+  const tookOptimalRoute = steps <= optimalSteps;
 
   async function handleShare() {
     const success = await copyToClipboard(buildShareText(state));
@@ -73,6 +74,16 @@ export function ResultSummary({ state }: ResultSummaryProps) {
       <p className={styles.grid} aria-hidden="true">
         {buildEmojiGrid(state)}
       </p>
+
+      {tookOptimalRoute ? (
+        <p className={styles.optimalMessage}>🏆 Du hast die optimale Route gewählt!</p>
+      ) : (
+        <div className={styles.optimalRoute}>
+          <p className={styles.optimalRouteLabel}>Optimale Route wäre gewesen:</p>
+          <p className={styles.optimalRoutePath}>{state.optimalPath.join(" → ")}</p>
+        </div>
+      )}
+
       <button type="button" className={styles.shareButton} onClick={handleShare}>
         {shareLabel}
       </button>

@@ -1,0 +1,25 @@
+.app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.summaryArea {
+  flex: none;
+  padding: 0.85rem 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+
+.summaryArea > * {
+  width: 100%;
+  max-width: 420px;
+}
+
+.mapArea {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}

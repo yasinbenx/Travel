@@ -22,7 +22,6 @@ type MapViewProps = {
 };
 
 const COLORS = {
-  hidden: "#e9e7e0",
   stroke: "#f8f7f3",
   revealed: "#5fae7c",
   start: "#3f7f5c",
@@ -30,16 +29,18 @@ const COLORS = {
 };
 
 /**
- * SVG-Weltkarte im "Pfad-Reveal"-Stil: Nur das Startland und die bisher
- * korrekt geratenen Länder sind farbig sichtbar; alles andere bleibt als
- * sehr dezenter grauer Umriss ohne jede Beschriftung im Hintergrund.
+ * SVG-Weltkarte im "Pfad-Reveal"-Stil: NUR das Startland und die bisher
+ * korrekt geratenen Länder werden überhaupt gerendert (Umriss + Füllung).
+ * Alle anderen Länder werden komplett aus dem Geographien-Array gefiltert
+ * — nicht nur unauffällig eingefärbt — damit ihre Umrisse keinerlei
+ * Hinweis auf Lage oder Form des Ziellandes geben können. Der Hintergrund
+ * ist eine einfarbige, neutrale Fläche ohne jede Kontur.
  *
  * Das Zielland bleibt bis zum Sieg absichtlich unmarkiert: im echten
  * travle.earth ist die Kontur des Ziellandes ebenfalls standardmäßig
  * verborgen und nur über einen optionalen, aktiv anzufordernden Hinweis
  * ("Show next/all country outline") einsehbar — es gibt dort keinen
- * automatischen Zielland-Marker. Das wird hier bewusst genauso gehandhabt,
- * statt einen dauerhaften Hinweis-Marker anzuzeigen.
+ * automatischen Zielland-Marker. Das wird hier bewusst genauso gehandhabt.
  *
  * Die Ansicht zoomt/zentriert sich automatisch auf die Bounding Box aller
  * aufgedeckten Länder (`computeMapView`, via `ZoomableGroup` gesteuert).
@@ -53,11 +54,14 @@ export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
     [revealedCountries, target, isWon],
   );
 
+  function isVisible(canonicalName: string): boolean {
+    return revealedSet.has(canonicalName) || (isWon && canonicalName === target);
+  }
+
   function fillFor(canonicalName: string): string {
     if (isWon && canonicalName === target) return COLORS.target;
     if (canonicalName === startCountry) return COLORS.start;
-    if (revealedSet.has(canonicalName)) return COLORS.revealed;
-    return COLORS.hidden;
+    return COLORS.revealed;
   }
 
   return (
@@ -76,11 +80,13 @@ export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
         >
           <Geographies geography={worldTopology}>
             {({ geographies }) =>
-              geographies.map((geo) => {
-                const canonicalName = resolveMapCountryName(
-                  String(geo.properties?.name ?? ""),
-                );
-                return (
+              geographies
+                .map((geo) => ({
+                  geo,
+                  canonicalName: resolveMapCountryName(String(geo.properties?.name ?? "")),
+                }))
+                .filter(({ canonicalName }) => isVisible(canonicalName))
+                .map(({ geo, canonicalName }) => (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
@@ -89,8 +95,7 @@ export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
                     stroke={COLORS.stroke}
                     strokeWidth={0.4}
                   />
-                );
-              })
+                ))
             }
           </Geographies>
         </ZoomableGroup>

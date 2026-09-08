@@ -6,25 +6,6 @@
   background: var(--bg);
 }
 
-.header {
-  flex: none;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-}
-
 .mapArea {
   position: relative;
   flex: 1;
@@ -59,15 +40,6 @@
   right: 0.6rem;
 }
 
-.resultOverlay {
-  position: absolute;
-  z-index: 20;
-  top: 0.75rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(92%, 380px);
-}
-
 .footer {
   flex: none;
   padding: 0.65rem 0.75rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
@@ -76,10 +48,6 @@
 }
 
 @media (max-width: 480px) {
-  .header {
-    padding: 0.5rem 0.75rem;
-  }
-
   .overlay {
     max-width: min(85vw, 220px);
   }

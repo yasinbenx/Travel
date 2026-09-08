@@ -1,7 +1,7 @@
-import { GameBoard } from "./components/GameBoard";
+import { AppShell } from "./components/AppShell";
 
 function App() {
-  return <GameBoard />;
+  return <AppShell />;
 }
 
 export default App;

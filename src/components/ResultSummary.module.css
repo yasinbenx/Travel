@@ -32,6 +32,38 @@
   word-break: break-all;
 }
 
+.optimalMessage {
+  margin: 0.1rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--correct-text);
+}
+
+.optimalRoute {
+  width: 100%;
+  margin: 0.1rem 0 0;
+  padding: 0.6rem 0.7rem;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--correct-border);
+}
+
+.optimalRouteLabel {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.optimalRoutePath {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
 .shareButton {
   margin-top: 0.25rem;
   padding: 0.55rem 1.1rem;
