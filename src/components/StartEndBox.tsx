@@ -1,3 +1,4 @@
+import { Flag, MapPin } from "lucide-react";
 import styles from "./StartEndBox.module.css";
 
 type StartEndBoxProps = {
@@ -28,14 +29,20 @@ export function StartEndBox({ start, end, compact = false }: StartEndBoxProps) {
   return (
     <div className={styles.wrapper}>
       <div className={`${styles.box} ${styles.start}`}>
-        <span className={styles.label}>Start</span>
+        <span className={styles.label}>
+          <MapPin size={12} strokeWidth={2.5} />
+          Start
+        </span>
         <span className={styles.country}>{start}</span>
       </div>
       <span className={styles.arrow} aria-hidden="true">
         &rarr;
       </span>
       <div className={`${styles.box} ${styles.end}`}>
-        <span className={styles.label}>Target</span>
+        <span className={styles.label}>
+          <Flag size={12} strokeWidth={2.5} />
+          Target
+        </span>
         <span className={styles.country}>{end}</span>
       </div>
     </div>

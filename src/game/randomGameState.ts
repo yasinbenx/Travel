@@ -1,9 +1,9 @@
 import { findShortestPath } from "../lib/findShortestPath";
-import { generateRandomPuzzle, type GameState } from "./gameEngine";
+import { generateRandomPuzzle, type Difficulty, type GameState } from "./gameEngine";
 
 /** Creates a fresh, unplayed game state for a brand-new random puzzle. */
-export function createRandomGameState(): GameState {
-  const { start, end } = generateRandomPuzzle();
+export function createRandomGameState(difficulty: Difficulty = "medium"): GameState {
+  const { start, end } = generateRandomPuzzle(difficulty);
   const optimalPath = findShortestPath(start, end);
   return {
     start,
@@ -11,5 +11,6 @@ export function createRandomGameState(): GameState {
     optimalPath,
     guesses: [],
     isWon: false,
+    difficulty,
   };
 }

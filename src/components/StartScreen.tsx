@@ -1,9 +1,13 @@
+import { useState } from "react";
+import { Play } from "lucide-react";
+import type { Difficulty } from "../game/gameEngine";
+import { DifficultySelector } from "./DifficultySelector";
 import { Footer } from "./Footer";
 import { WorldSilhouette } from "./WorldSilhouette";
 import styles from "./StartScreen.module.css";
 
 type StartScreenProps = {
-  onStart: () => void;
+  onStart: (difficulty: Difficulty) => void;
   error?: string | null;
 };
 
@@ -31,6 +35,8 @@ const HOW_TO_PLAY = [
  * country pair.
  */
 export function StartScreen({ onStart, error }: StartScreenProps) {
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+
   return (
     <div className={styles.screen}>
       <WorldSilhouette />
@@ -46,7 +52,9 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
               {error}
             </p>
           )}
-          <button type="button" className={styles.playButton} onClick={onStart}>
+          <DifficultySelector value={difficulty} onChange={setDifficulty} />
+          <button type="button" className={styles.playButton} onClick={() => onStart(difficulty)}>
+            <Play size={18} strokeWidth={2.5} fill="currentColor" />
             Play
           </button>
         </div>

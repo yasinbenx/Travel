@@ -1,4 +1,4 @@
-import { getConfirmedChain, type GameState, type GuessQuality } from "./gameEngine";
+import { DIFFICULTY_LABEL, getConfirmedChain, type GameState, type GuessQuality } from "./gameEngine";
 
 const QUALITY_EMOJI: Record<GuessQuality, string> = {
   gold: "🟨",
@@ -30,7 +30,9 @@ export function buildShareText(state: GameState): string {
       ? ` · ${detourGuesses} off-path ${detourGuesses === 1 ? "guess" : "guesses"}`
       : "");
 
-  return [`BorderHop – ${state.start} → ${state.end}`, statsLine, buildEmojiGrid(state)].join(
-    "\n",
-  );
+  return [
+    `BorderHop [${DIFFICULTY_LABEL[state.difficulty]}] – ${state.start} → ${state.end}`,
+    statsLine,
+    buildEmojiGrid(state),
+  ].join("\n");
 }

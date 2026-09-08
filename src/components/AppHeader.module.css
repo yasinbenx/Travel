@@ -26,7 +26,6 @@
   height: 2.75rem;
   display: grid;
   place-items: center;
-  font-size: 1.3rem;
   color: var(--text-muted);
   background: var(--surface-muted);
   border: none;
@@ -34,12 +33,14 @@
   cursor: pointer;
   transition:
     background 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    transform 0.15s ease;
 }
 
 .restartButton:hover {
   background: var(--wrong-bg);
   color: var(--wrong-text);
+  transform: rotate(-25deg);
 }
 
 @media (max-width: 480px) {

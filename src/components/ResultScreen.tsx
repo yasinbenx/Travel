@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import confetti from "canvas-confetti";
+import { RotateCcw } from "lucide-react";
 import type { GameState } from "../game/gameEngine";
 import { AppHeader } from "./AppHeader";
 import { MapView } from "./MapView";
@@ -31,7 +32,7 @@ export function ResultScreen({ state, onPlayAgain }: ResultScreenProps) {
 
   return (
     <div className={styles.app}>
-      <AppHeader start={state.start} end={state.end} />
+      <AppHeader start={state.start} end={state.end} difficulty={state.difficulty} />
 
       <div className={styles.summaryArea}>
         <ResultSummary state={state} />
@@ -43,6 +44,7 @@ export function ResultScreen({ state, onPlayAgain }: ResultScreenProps) {
 
       <footer className={styles.footer}>
         <button type="button" className={styles.playAgainButton} onClick={onPlayAgain}>
+          <RotateCcw size={16} strokeWidth={2.5} />
           Play again
         </button>
       </footer>

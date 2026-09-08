@@ -49,6 +49,17 @@
   --radius-md: 12px;
   --radius-lg: 18px;
 
+  /* Soft brand-colored backdrop for the start/result screens */
+  --gradient-hero:
+    radial-gradient(1100px circle at 12% -15%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 55%),
+    radial-gradient(900px circle at 105% 8%, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 60%),
+    linear-gradient(180deg, #eef2f9 0%, var(--bg) 100%);
+
+  /* Glassmorphism: semi-transparent, blurred card surface over the gradient */
+  --glass-bg: color-mix(in srgb, var(--surface) 78%, transparent);
+  --glass-border: color-mix(in srgb, var(--border) 60%, transparent);
+  --glass-blur: blur(16px);
+
   --sans: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --heading: "Space Grotesk", var(--sans);
 

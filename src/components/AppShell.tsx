@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { submitGuess, type GameState } from "../game/gameEngine";
+import { submitGuess, type Difficulty, type GameState } from "../game/gameEngine";
 import { loadGameState, saveGameState } from "../game/persistence";
 import { createRandomGameState } from "../game/randomGameState";
 import { GameBoard } from "./GameBoard";
@@ -32,9 +32,9 @@ export function AppShell() {
     setGameState((prev) => (prev ? submitGuess(prev, guess) : prev));
   }
 
-  function handleNewGame() {
+  function handleNewGame(difficulty: Difficulty = gameState?.difficulty ?? "medium") {
     try {
-      setGameState(createRandomGameState());
+      setGameState(createRandomGameState(difficulty));
       setPuzzleError(null);
     } catch (error) {
       console.error("Failed to generate a new puzzle:", error);
@@ -47,8 +47,8 @@ export function AppShell() {
   }
 
   if (gameState.isWon) {
-    return <ResultScreen state={gameState} onPlayAgain={handleNewGame} />;
+    return <ResultScreen state={gameState} onPlayAgain={() => handleNewGame()} />;
   }
 
-  return <GameBoard state={gameState} onGuess={handleGuess} onRestart={handleNewGame} />;
+  return <GameBoard state={gameState} onGuess={handleGuess} onRestart={() => handleNewGame()} />;
 }

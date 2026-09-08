@@ -5,16 +5,21 @@
   gap: 0.6rem;
   padding: 1.25rem;
   border-radius: var(--radius-lg);
-  background: var(--correct-bg);
+  background: color-mix(in srgb, var(--correct-bg) 85%, transparent);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--correct-border);
   box-shadow: var(--shadow-lg);
   text-align: center;
 }
 
 .heading {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   margin: 0;
   font-family: var(--heading);
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--correct-text);
 }
@@ -34,6 +39,9 @@
 }
 
 .optimalMessage {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   margin: 0.1rem 0 0;
   font-size: 0.85rem;
   font-weight: 600;
@@ -59,14 +67,26 @@
   color: var(--text-muted);
 }
 
+.optimalRouteMap {
+  position: relative;
+  height: 150px;
+  margin: 0 0 0.55rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
 .optimalRoutePath {
   margin: 0;
-  font-size: 0.82rem;
-  color: var(--text);
+  font-size: 0.78rem;
+  color: var(--text-muted);
   overflow-wrap: anywhere;
 }
 
 .shareButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   margin-top: 0.25rem;
   padding: 0.65rem 1.4rem;
   font: inherit;
@@ -86,12 +106,12 @@
 
 .shareButton:hover {
   background: var(--color-accent-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.03);
   box-shadow: var(--shadow-md);
 }
 
 .shareButton:active {
   background: var(--color-accent-active);
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
   box-shadow: var(--shadow-sm);
 }

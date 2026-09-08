@@ -50,7 +50,7 @@ export function GameBoard({ state, onGuess, onRestart }: GameBoardProps) {
 
   return (
     <div className={styles.app}>
-      <AppHeader start={state.start} end={state.end} onRestart={onRestart} />
+      <AppHeader start={state.start} end={state.end} difficulty={state.difficulty} onRestart={onRestart} />
 
       <main className={styles.mapArea}>
         <MapView start={state.start} target={state.end} guesses={state.guesses} isWon={state.isWon} />

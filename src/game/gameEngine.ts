@@ -18,13 +18,27 @@ export type GameState = {
   optimalPath: string[];
   guesses: Guess[];
   isWon: boolean;
+  difficulty: Difficulty;
 };
 
-const MIN_INTERMEDIATE_STEPS = 4;
-const MAX_INTERMEDIATE_STEPS = 8;
+export type Difficulty = "easy" | "medium" | "hard";
 
-/** A neighbor guess that lengthens the route by this many countries or fewer is "orange"; more is "red". */
-const MAX_ORANGE_DETOUR = 2;
+/** Range of intermediate steps (`optimalPath.length - 2`) allowed for each difficulty. */
+const DIFFICULTY_INTERMEDIATE_STEPS: Record<Difficulty, { min: number; max: number }> = {
+  easy: { min: 2, max: 3 },
+  medium: { min: 4, max: 6 },
+  hard: { min: 7, max: 10 },
+};
+
+/** Display label for each difficulty, shared by the start screen, in-game badge, and share text. */
+export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+};
+
+/** A neighbor guess that lengthens the remaining route by this many countries or fewer is "orange"; more is "red". */
+const MAX_ORANGE_DETOUR = 1;
 
 // ---------------------------------------------------------------------
 // Name normalization / alias resolution
@@ -97,13 +111,21 @@ function getLastConfirmedCountry(state: GameState): string {
  *   This covers both a near-miss and a wildly distant guess (e.g. the
  *   USA on a Morocco -> Germany route) equally — neither is a valid next
  *   step, so neither extends the chain.
- * - A real neighbor: graded by how much longer the total route becomes
- *   if this guess is taken, compared to the shortest possible route
- *   overall (`state.optimalPath`). 0 extra countries -> "gold" (matches
- *   the original reference path's next step) or "green" (an equally
- *   short alternative route); 1-2 extra -> "orange"; 3+ extra -> "red"
- *   (but still `isNeighbor: true`, so it still extends the chain — a bad
- *   move can still be a valid one).
+ * - A real neighbor: graded purely on this one step, by comparing the
+ *   guess's own BFS distance to the target against the theoretically
+ *   best possible remaining distance after ANY optimal step from the
+ *   last confirmed country (`BFS(lastConfirmed, target) - 1`). This is
+ *   a fresh graph computation, not a lookup against the exact position
+ *   in the original reference path — so a real neighbor that keeps the
+ *   route just as short (e.g. an equally good alternative branch to the
+ *   target) is never mistaken for a detour merely because it isn't the
+ *   one specific country the reference path happened to pick next.
+ *   0 extra -> "gold" (matches the reference path's next step) or
+ *   "green" (an equally short alternative); 1 extra -> "orange"; 2+
+ *   extra -> "red" (but still `isNeighbor: true`, so it still extends
+ *   the chain — a bad move can still be a valid one). Since the guess is
+ *   exactly one hop from the last confirmed country, this delta can only
+ *   ever be 0, 1, or 2 (the BFS triangle inequality bounds it).
  */
 export function evaluateGuessQuality(state: GameState, guessInput: string): Guess {
   const resolved = resolveCountryName(guessInput);
@@ -122,10 +144,9 @@ export function evaluateGuessQuality(state: GameState, guessInput: string): Gues
 
   const distancesToTarget = computeDistancesFrom(state.end);
   const distanceFromGuess = distancesToTarget.get(resolved) ?? Number.POSITIVE_INFINITY;
-  const stepsSoFar = getConfirmedChain(state).length;
-  const optimalTotalSteps = state.optimalPath.length - 1;
-  const projectedTotalSteps = stepsSoFar + 1 + distanceFromGuess;
-  const detour = projectedTotalSteps - optimalTotalSteps;
+  const distanceFromLastConfirmed = distancesToTarget.get(lastConfirmed) ?? Number.POSITIVE_INFINITY;
+  const bestPossibleRemainingDistance = distanceFromLastConfirmed - 1;
+  const detour = distanceFromGuess - bestPossibleRemainingDistance;
 
   if (detour <= 0) {
     const lastIndex = state.optimalPath.indexOf(lastConfirmed);
@@ -183,14 +204,17 @@ export function submitGuess(state: GameState, guessInput: string): GameState {
 // ---------------------------------------------------------------------
 
 /**
- * Picks a random country pair whose shortest land route has between
- * {@link MIN_INTERMEDIATE_STEPS} and {@link MAX_INTERMEDIATE_STEPS}
- * intermediate countries (i.e. `optimalPath.length - 2`, not counting the
- * start and target themselves). Called fresh on every "Play"/"Play
- * again" click — there is no daily seed, every round is a new random
- * pair.
+ * Picks a random country pair whose shortest land route has an
+ * intermediate-country count (`optimalPath.length - 2`, not counting the
+ * start and target themselves) within the given {@link Difficulty}'s
+ * range. Called fresh on every "Play"/"Play again" click — there is no
+ * daily seed, every round is a new random pair.
  */
-export function generateRandomPuzzle(): { start: string; end: string } {
+export function generateRandomPuzzle(difficulty: Difficulty = "medium"): {
+  start: string;
+  end: string;
+} {
+  const { min, max } = DIFFICULTY_INTERMEDIATE_STEPS[difficulty];
   const countries = Object.keys(countryAdjacency);
   const n = countries.length;
   const maxAttempts = n * n;
@@ -206,13 +230,10 @@ export function generateRandomPuzzle(): { start: string; end: string } {
     if (path.length === 0) continue; // no land connection (e.g. islands)
 
     const intermediateSteps = path.length - 2;
-    if (
-      intermediateSteps >= MIN_INTERMEDIATE_STEPS &&
-      intermediateSteps <= MAX_INTERMEDIATE_STEPS
-    ) {
+    if (intermediateSteps >= min && intermediateSteps <= max) {
       return { start, end };
     }
   }
 
-  throw new Error("Could not find a suitable country pair for a new puzzle");
+  throw new Error(`Could not find a suitable country pair for a new "${difficulty}" puzzle`);
 }

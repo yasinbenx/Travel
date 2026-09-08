@@ -16,6 +16,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     optimalPath: ["Germany", "Austria", "Italy"],
     guesses: [],
     isWon: false,
+    difficulty: "medium",
     ...overrides,
   };
 }
@@ -234,22 +235,48 @@ describe("evaluateGuessQuality", () => {
     });
   });
 
-  it("grades a neighbor as red once earlier detours have piled up a 3+ country total detour", () => {
-    // Germany -> Poland directly border each other (1 hop). Taking a first
-    // detour via France (2 hops from Poland via Germany, +1 country) leaves
-    // the chain already 1 country behind pace. A second sideways move from
-    // France to Spain (3 hops from Poland) piles on 3 more hops for one more
-    // step taken, compounding the total detour to 4 countries -> red, but
-    // Spain is still a real neighbor of France, so it still extends the chain.
+  it("grades a neighbor with a 2+ country detour as red, even though it's still a valid, chain-extending move", () => {
+    // Germany and Poland directly border each other (1 hop) — the best
+    // possible remaining distance from Germany is therefore 0. France is a
+    // real Germany neighbor, but is 2 hops from Poland (via Germany again),
+    // which is 2 more than the best possible remaining distance -> red.
+    // France is still a real neighbor of Germany, so it still extends the
+    // chain (isNeighbor: true) — a bad move can still be a valid one.
     const optimalPath = findShortestPath("Germany", "Poland");
-    let state = makeState({ start: "Germany", end: "Poland", optimalPath });
+    const state = makeState({ start: "Germany", end: "Poland", optimalPath });
 
-    state = submitGuess(state, "France");
-    expect(state.guesses[0]).toEqual({ country: "France", quality: "orange", isNeighbor: true });
+    expect(evaluateGuessQuality(state, "France")).toEqual({
+      country: "France",
+      quality: "red",
+      isNeighbor: true,
+    });
+  });
 
-    state = submitGuess(state, "Spain");
-    expect(state.guesses[1]).toEqual({ country: "Spain", quality: "red", isNeighbor: true });
-    expect(getConfirmedChain(state)).toEqual(["France", "Spain"]);
+  it("Denmark -> Italy: guessing Austria or Switzerland right after Germany is graded gold/green, never a 'big detour' red, even though neither is the exact array position originally computed for the missing step", () => {
+    // Denmark's only land neighbor is Germany, so Germany is the only
+    // possible (and gold) first move. From Germany, Austria and
+    // Switzerland are both real neighbors that directly border Italy —
+    // equally short alternatives — so guessing either one must never come
+    // out as a "big detour", regardless of which one the precomputed
+    // reference path happened to pick.
+    const optimalPath = findShortestPath("Denmark", "Italy");
+    expect(optimalPath).toEqual(["Denmark", "Germany", expect.any(String), "Italy"]);
+
+    let state = makeState({ start: "Denmark", end: "Italy", optimalPath });
+    state = submitGuess(state, "Germany");
+    expect(state.guesses[0]).toEqual({ country: "Germany", quality: "gold", isNeighbor: true });
+
+    const referenceNextStep = optimalPath[2]; // "Austria" or "Switzerland"
+
+    const austriaResult = submitGuess(state, "Austria");
+    expect(austriaResult.guesses[1].isNeighbor).toBe(true);
+    expect(austriaResult.guesses[1].quality).toBe(referenceNextStep === "Austria" ? "gold" : "green");
+
+    const switzerlandResult = submitGuess(state, "Switzerland");
+    expect(switzerlandResult.guesses[1].isNeighbor).toBe(true);
+    expect(switzerlandResult.guesses[1].quality).toBe(
+      referenceNextStep === "Switzerland" ? "gold" : "green",
+    );
   });
 
   it("grades a guess that isn't a real neighbor at all as red, regardless of how close or far it is", () => {
@@ -263,21 +290,41 @@ describe("evaluateGuessQuality", () => {
 });
 
 describe("generateRandomPuzzle", () => {
-  it("returns a valid country pair with 4-8 intermediate steps, run repeatedly", () => {
+  it("defaults to medium (4-6 intermediate steps) when no difficulty is given", () => {
     for (let i = 0; i < 20; i++) {
       const { start, end } = generateRandomPuzzle();
-      expect(start).not.toBe(end);
-
-      const path = findShortestPath(start, end);
-      expect(path.length).toBeGreaterThan(0);
-      expect(path[0]).toBe(start);
-      expect(path[path.length - 1]).toBe(end);
-
-      const intermediateSteps = path.length - 2;
+      const intermediateSteps = findShortestPath(start, end).length - 2;
       expect(intermediateSteps).toBeGreaterThanOrEqual(4);
-      expect(intermediateSteps).toBeLessThanOrEqual(8);
+      expect(intermediateSteps).toBeLessThanOrEqual(6);
     }
   });
+
+  const ranges: Record<"easy" | "medium" | "hard", { min: number; max: number }> = {
+    easy: { min: 2, max: 3 },
+    medium: { min: 4, max: 6 },
+    hard: { min: 7, max: 10 },
+  };
+
+  for (const [difficulty, { min, max }] of Object.entries(ranges) as [
+    "easy" | "medium" | "hard",
+    { min: number; max: number },
+  ][]) {
+    it(`"${difficulty}" returns a valid country pair with ${min}-${max} intermediate steps, run repeatedly`, () => {
+      for (let i = 0; i < 20; i++) {
+        const { start, end } = generateRandomPuzzle(difficulty);
+        expect(start).not.toBe(end);
+
+        const path = findShortestPath(start, end);
+        expect(path.length).toBeGreaterThan(0);
+        expect(path[0]).toBe(start);
+        expect(path[path.length - 1]).toBe(end);
+
+        const intermediateSteps = path.length - 2;
+        expect(intermediateSteps).toBeGreaterThanOrEqual(min);
+        expect(intermediateSteps).toBeLessThanOrEqual(max);
+      }
+    });
+  }
 
   it("is random rather than fixed (varies across calls)", () => {
     const pairs = new Set<string>();

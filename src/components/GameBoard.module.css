@@ -33,10 +33,11 @@
 .progressOverlay {
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(3px);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .stepCounter {
@@ -45,7 +46,7 @@
   align-items: baseline;
   gap: 0.4rem;
   font-family: var(--heading);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--color-primary);
   white-space: nowrap;

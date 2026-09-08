@@ -1,0 +1,26 @@
+.badge {
+  flex: none;
+  padding: 0.2rem 0.55rem;
+  font-family: var(--heading);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.easy {
+  color: var(--correct-text);
+  background: var(--correct-bg);
+}
+
+.medium {
+  color: var(--quality-orange-text);
+  background: color-mix(in srgb, var(--quality-orange-text) 14%, transparent);
+}
+
+.hard {
+  color: var(--wrong-text);
+  background: var(--wrong-bg);
+}
