@@ -9,8 +9,7 @@ function isGameState(value: unknown): value is GameState {
     typeof candidate.start === "string" &&
     typeof candidate.end === "string" &&
     Array.isArray(candidate.optimalPath) &&
-    Array.isArray(candidate.correctGuesses) &&
-    Array.isArray(candidate.wrongGuesses) &&
+    Array.isArray(candidate.guesses) &&
     typeof candidate.isWon === "boolean"
   );
 }

@@ -25,6 +25,12 @@
   --wrong-border: #f0c7be;
   --wrong-text: #b0402a;
 
+  /* Guess quality (map fills + guess list text) */
+  --quality-gold-text: #8a6d0f;
+  --quality-green-text: #1e7a4d;
+  --quality-orange-text: #a35420;
+  --quality-red-text: #b0402a;
+
   /* Map */
   --map-bg: #d7e3f0;
   --map-hidden: #e2e6ed;

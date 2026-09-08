@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { countryAdjacency } from "../data/countryAdjacency";
-import { findShortestPath } from "./findShortestPath";
+import { computeDistancesFrom, findShortestPath } from "./findShortestPath";
 
 /**
  * Checks that every consecutive country pair in the path actually shares
@@ -81,6 +81,37 @@ describe("findShortestPath", () => {
   it("throws an error for unknown country names", () => {
     expect(() => findShortestPath("Narnia", "Germany")).toThrow();
     expect(() => findShortestPath("Germany", "Narnia")).toThrow();
+  });
+});
+
+describe("computeDistancesFrom", () => {
+  it("assigns distance 0 to the origin itself", () => {
+    const distances = computeDistancesFrom("Germany");
+    expect(distances.get("Germany")).toBe(0);
+  });
+
+  it("matches findShortestPath's hop count for several real routes", () => {
+    const distances = computeDistancesFrom("Italy");
+    expect(distances.get("Austria")).toBe(1);
+    expect(distances.get("Switzerland")).toBe(1);
+    expect(distances.get("Germany")).toBe(2);
+    expect(distances.get("Czech Republic")).toBe(2);
+  });
+
+  it("is symmetric (distance A->B equals B->A, since the graph is undirected)", () => {
+    const fromPortugal = computeDistancesFrom("Portugal");
+    const fromFinland = computeDistancesFrom("Finland");
+    expect(fromPortugal.get("Finland")).toBe(fromFinland.get("Portugal"));
+    expect(fromPortugal.get("Finland")).toBe(6);
+  });
+
+  it("doesn't include unreachable countries (no land route)", () => {
+    const distances = computeDistancesFrom("Ireland");
+    expect(distances.has("Poland")).toBe(false);
+  });
+
+  it("throws an error for an unknown country", () => {
+    expect(() => computeDistancesFrom("Narnia")).toThrow();
   });
 });
 

@@ -4,85 +4,51 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  max-height: 9rem;
+  overflow-y: auto;
 }
 
 .empty {
-  padding: 1.25rem 1rem;
-  text-align: center;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: var(--radius-md);
-  background: var(--correct-bg);
-  border: 1px solid var(--correct-border);
-  box-shadow: var(--shadow-sm);
-  animation: appear 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.country {
-  font-weight: 600;
-  color: var(--correct-text);
-}
-
-.skipped {
-  flex: none;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--correct-text);
-  background: var(--correct-badge-bg);
-  border-radius: 999px;
-  padding: 0.2rem 0.6rem;
-  white-space: nowrap;
-}
-
-.emptyCompact {
   font-size: 0.78rem;
   color: var(--text-muted);
 }
 
-.chipList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  max-height: 6.5rem;
-  overflow-y: auto;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--correct-text);
-  background: var(--correct-bg);
-  border: 1px solid var(--correct-border);
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
-  white-space: nowrap;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
   animation: appear 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.chipSkip {
-  font-size: 0.68rem;
+.country {
+  font-size: 0.82rem;
   font-weight: 700;
-  color: var(--correct-text);
-  background: var(--correct-badge-bg);
-  border-radius: 999px;
-  padding: 0 0.35rem;
+}
+
+.note {
+  font-size: 0.68rem;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
+.gold {
+  color: var(--quality-gold-text);
+}
+
+.green {
+  color: var(--quality-green-text);
+}
+
+.orange {
+  color: var(--quality-orange-text);
+}
+
+.red {
+  color: var(--quality-red-text);
 }
 
 @keyframes appear {

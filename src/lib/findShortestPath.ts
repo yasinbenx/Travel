@@ -45,6 +45,37 @@ export function findShortestPath(start: string, end: string): string[] {
   return [];
 }
 
+/**
+ * Computes the BFS shortest-hop distance from `origin` to every country
+ * reachable from it via land borders (the adjacency graph is symmetric,
+ * so this also gives the distance *to* `origin` from anywhere). Used to
+ * grade how much of a detour a guess is, relative to the shortest
+ * possible remaining route to a target.
+ *
+ * @throws Error if `origin` isn't a known country.
+ */
+export function computeDistancesFrom(origin: string): Map<string, number> {
+  if (!(origin in countryAdjacency)) {
+    throw new Error(`Unknown country: "${origin}"`);
+  }
+
+  const distances = new Map<string, number>([[origin, 0]]);
+  const queue: string[] = [origin];
+
+  for (let i = 0; i < queue.length; i++) {
+    const current = queue[i];
+    const currentDistance = distances.get(current)!;
+
+    for (const neighbor of countryAdjacency[current]) {
+      if (distances.has(neighbor)) continue;
+      distances.set(neighbor, currentDistance + 1);
+      queue.push(neighbor);
+    }
+  }
+
+  return distances;
+}
+
 function reconstructPath(
   parent: Map<string, string>,
   start: string,

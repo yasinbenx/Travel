@@ -19,8 +19,6 @@ type ResultScreenProps = {
  * random puzzle.
  */
 export function ResultScreen({ state, onPlayAgain }: ResultScreenProps) {
-  const revealedCountries = [state.start, ...state.correctGuesses];
-
   useEffect(() => {
     confetti({
       particleCount: 130,
@@ -40,7 +38,7 @@ export function ResultScreen({ state, onPlayAgain }: ResultScreenProps) {
       </div>
 
       <main className={styles.mapArea}>
-        <MapView revealedCountries={revealedCountries} target={state.end} isWon={state.isWon} />
+        <MapView start={state.start} target={state.end} guesses={state.guesses} isWon={state.isWon} />
       </main>
 
       <footer className={styles.footer}>

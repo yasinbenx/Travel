@@ -3,6 +3,7 @@ import type { GeoJsonObject } from "geojson";
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import rawWorldTopology from "world-atlas/countries-50m.json";
 import { resolveMapCountryName } from "../data/mapCountryNames";
+import type { Guess, GuessQuality } from "../game/gameEngine";
 import { computeMapView, getCountryCentroid } from "./mapGeometry";
 import { MAP_SCALE } from "./mapProjection";
 import styles from "./MapView.module.css";
@@ -14,55 +15,71 @@ import styles from "./MapView.module.css";
 const worldTopology = rawWorldTopology as unknown as GeoJsonObject;
 
 type MapViewProps = {
-  /** Start country + correctly guessed countries so far, in order. */
-  revealedCountries: string[];
-  /** Target country — always visible, but only reached once won (see below). */
+  start: string;
+  /** Target country — always visible, but only "reached" (pulsing) once won. */
   target: string;
+  /** Every guess made so far, in order, each colored by its quality on the map. */
+  guesses: Guess[];
   isWon: boolean;
 };
 
 const COLORS = {
   stroke: "#f7f8fa",
-  revealed: "#2f9e6e",
   start: "#14213d",
   target: "#f0a93e",
   labelHalo: "#ffffff",
 };
 
+const QUALITY_MAP_COLORS: Record<GuessQuality, string> = {
+  gold: "#caa118",
+  green: "#2f9e6e",
+  orange: "#d97a34",
+  red: "#c0392b",
+};
+
 /**
- * SVG world map in a "path reveal" style: the start country AND the
- * target country are visible from the very first render (in distinct
- * colors, each with an on-map label), so the player always knows where
- * they're starting from and navigating to. Only the countries in between
- * stay hidden until correctly guessed — every other country is filtered
- * out of the geographies array entirely, not just subtly colored, so no
- * outline can leak a hint about what lies between them.
+ * SVG world map: the start and target country are visible from the very
+ * first render (in distinct colors, each with an on-map label), and
+ * every guess the player makes — however far off — is shown too, colored
+ * by its quality (gold/green = on the shortest route, orange = a small
+ * detour, red = a bad move or not even a real neighbor). Countries that
+ * haven't been guessed yet are filtered out of the geographies array
+ * entirely, not just subtly colored, so no outline can leak a hint about
+ * what lies between start and target.
  *
  * The view automatically zooms/centers on the bounding box of the start,
- * target, and all revealed countries (`computeMapView`, driven via
- * `ZoomableGroup`).
+ * target, and every guessed country (`computeMapView`, driven via
+ * `ZoomableGroup`) — so a wildly distant guess visibly zooms the map out.
  */
-export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
-  const revealedSet = useMemo(() => new Set(revealedCountries), [revealedCountries]);
-  const startCountry = revealedCountries[0];
+export function MapView({ start, target, guesses, isWon }: MapViewProps) {
+  const qualityByCountry = useMemo(() => {
+    const map = new Map<string, GuessQuality>();
+    for (const guess of guesses) {
+      map.set(guess.country, guess.quality);
+    }
+    return map;
+  }, [guesses]);
+
+  const guessedNames = useMemo(() => [...qualityByCountry.keys()], [qualityByCountry]);
 
   const view = useMemo(
-    () => computeMapView([...revealedCountries, target]),
-    [revealedCountries, target],
+    () => computeMapView([start, target, ...guessedNames]),
+    [start, target, guessedNames],
   );
 
   function isVisible(canonicalName: string): boolean {
-    return revealedSet.has(canonicalName) || canonicalName === target;
+    return canonicalName === start || canonicalName === target || qualityByCountry.has(canonicalName);
   }
 
   function fillFor(canonicalName: string): string {
     if (canonicalName === target) return COLORS.target;
-    if (canonicalName === startCountry) return COLORS.start;
-    return COLORS.revealed;
+    if (canonicalName === start) return COLORS.start;
+    const quality = qualityByCountry.get(canonicalName);
+    return quality ? QUALITY_MAP_COLORS[quality] : COLORS.start;
   }
 
   const inverseZoom = 1 / view.zoom;
-  const startCentroid = getCountryCentroid(startCountry);
+  const startCentroid = getCountryCentroid(start);
   const targetCentroid = getCountryCentroid(target);
 
   function renderLabel(name: string, centroid: [number, number] | null, color: string) {
@@ -125,7 +142,7 @@ export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
                 ))
             }
           </Geographies>
-          {renderLabel(startCountry, startCentroid, COLORS.start)}
+          {renderLabel(start, startCentroid, COLORS.start)}
           {renderLabel(target, targetCentroid, COLORS.target)}
         </ZoomableGroup>
       </ComposableMap>

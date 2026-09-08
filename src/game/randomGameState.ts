@@ -9,8 +9,7 @@ export function createRandomGameState(): GameState {
     start,
     end,
     optimalPath,
-    correctGuesses: [],
-    wrongGuesses: [],
+    guesses: [],
     isWon: false,
   };
 }

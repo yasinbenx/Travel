@@ -22,20 +22,12 @@
   min-height: 0;
 }
 
-.overlayBar {
+.overlay {
   position: absolute;
   z-index: 10;
   top: 0.7rem;
   left: 0.7rem;
-  right: 0.7rem;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.overlay {
-  max-width: min(60vw, 260px);
+  max-width: min(75vw, 280px);
 }
 
 .progressOverlay {
@@ -66,10 +58,6 @@
   color: var(--text-muted);
 }
 
-.wrongOverlay {
-  flex: none;
-}
-
 .footer {
   flex: none;
   padding: 0.7rem 0.8rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
@@ -80,6 +68,6 @@
 
 @media (max-width: 480px) {
   .overlay {
-    max-width: min(56vw, 190px);
+    max-width: min(85vw, 240px);
   }
 }

@@ -1,18 +1,30 @@
 import { countryAdjacency } from "../data/countryAdjacency";
-import { findShortestPath } from "../lib/findShortestPath";
+import { computeDistancesFrom, findShortestPath } from "../lib/findShortestPath";
 import { countryAliases } from "./countryAliases";
+
+export type GuessQuality = "gold" | "green" | "orange" | "red";
+
+export type Guess = {
+  /** Canonical country name, or the raw trimmed input if it couldn't be resolved to one. */
+  country: string;
+  quality: GuessQuality;
+  /** Whether this guess is a real land-border neighbor of the country before it in the chain. */
+  isNeighbor: boolean;
+};
 
 export type GameState = {
   start: string;
   end: string;
   optimalPath: string[];
-  correctGuesses: string[];
-  wrongGuesses: string[];
+  guesses: Guess[];
   isWon: boolean;
 };
 
 const MIN_INTERMEDIATE_STEPS = 4;
 const MAX_INTERMEDIATE_STEPS = 8;
+
+/** A neighbor guess that lengthens the route by this many countries or fewer is "orange"; more is "red". */
+const MAX_ORANGE_DETOUR = 2;
 
 // ---------------------------------------------------------------------
 // Name normalization / alias resolution
@@ -53,10 +65,83 @@ export function resolveCountryName(input: string): string | undefined {
   return normalizedNameToCanonical.get(normalize(input));
 }
 
-function getLastCorrectCountry(state: GameState): string {
-  return state.correctGuesses.length > 0
-    ? state.correctGuesses[state.correctGuesses.length - 1]
-    : state.start;
+// ---------------------------------------------------------------------
+// Guess chain helpers
+// ---------------------------------------------------------------------
+
+/**
+ * The chain of countries that actually count as progress: every guess
+ * that was a real land-border neighbor of the country before it, in
+ * order. A guess that wasn't a neighbor at all (however far off) is
+ * still shown on the map and in the guess list, but doesn't extend this
+ * chain — the player keeps guessing from wherever it currently ends.
+ */
+export function getConfirmedChain(state: GameState): string[] {
+  return state.guesses.filter((guess) => guess.isNeighbor).map((guess) => guess.country);
+}
+
+function getLastConfirmedCountry(state: GameState): string {
+  const chain = getConfirmedChain(state);
+  return chain.length > 0 ? chain[chain.length - 1] : state.start;
+}
+
+// ---------------------------------------------------------------------
+// Guess quality
+// ---------------------------------------------------------------------
+
+/**
+ * Grades a single guess against the last confirmed country:
+ *
+ * - Not a real, recognized country, or not a direct land-border neighbor
+ *   of the last confirmed country at all -> "red", `isNeighbor: false`.
+ *   This covers both a near-miss and a wildly distant guess (e.g. the
+ *   USA on a Morocco -> Germany route) equally — neither is a valid next
+ *   step, so neither extends the chain.
+ * - A real neighbor: graded by how much longer the total route becomes
+ *   if this guess is taken, compared to the shortest possible route
+ *   overall (`state.optimalPath`). 0 extra countries -> "gold" (matches
+ *   the original reference path's next step) or "green" (an equally
+ *   short alternative route); 1-2 extra -> "orange"; 3+ extra -> "red"
+ *   (but still `isNeighbor: true`, so it still extends the chain — a bad
+ *   move can still be a valid one).
+ */
+export function evaluateGuessQuality(state: GameState, guessInput: string): Guess {
+  const resolved = resolveCountryName(guessInput);
+  const country = resolved ?? guessInput.trim();
+
+  if (!resolved) {
+    return { country, quality: "red", isNeighbor: false };
+  }
+
+  const lastConfirmed = getLastConfirmedCountry(state);
+  const isNeighbor = (countryAdjacency[lastConfirmed] ?? []).includes(resolved);
+
+  if (!isNeighbor) {
+    return { country: resolved, quality: "red", isNeighbor: false };
+  }
+
+  const distancesToTarget = computeDistancesFrom(state.end);
+  const distanceFromGuess = distancesToTarget.get(resolved) ?? Number.POSITIVE_INFINITY;
+  const stepsSoFar = getConfirmedChain(state).length;
+  const optimalTotalSteps = state.optimalPath.length - 1;
+  const projectedTotalSteps = stepsSoFar + 1 + distanceFromGuess;
+  const detour = projectedTotalSteps - optimalTotalSteps;
+
+  if (detour <= 0) {
+    const lastIndex = state.optimalPath.indexOf(lastConfirmed);
+    const referenceNextStep = lastIndex >= 0 ? state.optimalPath[lastIndex + 1] : undefined;
+    return {
+      country: resolved,
+      quality: resolved === referenceNextStep ? "gold" : "green",
+      isNeighbor: true,
+    };
+  }
+
+  return {
+    country: resolved,
+    quality: detour <= MAX_ORANGE_DETOUR ? "orange" : "red",
+    isNeighbor: true,
+  };
 }
 
 // ---------------------------------------------------------------------
@@ -64,92 +149,33 @@ function getLastCorrectCountry(state: GameState): string {
 // ---------------------------------------------------------------------
 
 /**
- * Processes a guess. A guess is correct if it resolves to a known country
- * AND is a direct land-border neighbor of the last correctly guessed
- * country (the start counts as the first correct country) — this is
- * checked purely against the real adjacency graph (`countryAdjacency`),
- * regardless of whether the guess happens to lie on `state.optimalPath`.
- * `optimalPath` is never consulted here; the player is free to take any
- * valid (possibly longer) chain of real neighbors to the target — it's
- * only used afterwards, for comparison, once the round is won.
+ * Processes a guess: every guess — even a wildly wrong one — is recorded
+ * and graded (see {@link evaluateGuessQuality}), shown on the map and in
+ * the guess list. Only guesses that are real neighbors of the last
+ * confirmed country extend the confirmed chain and can win the round; a
+ * non-neighbor guess is simply logged without changing anything else.
  *
- * A correct guess that itself borders the target country (or is the
+ * A confirmed guess that itself borders the target country (or is the
  * target itself) wins the game.
  *
  * If the game is already won, the state is returned unchanged.
  */
-export function submitGuess(state: GameState, guess: string): GameState {
+export function submitGuess(state: GameState, guessInput: string): GameState {
   if (state.isWon) {
     return state;
   }
 
-  const resolved = resolveCountryName(guess);
+  const guess = evaluateGuessQuality(state, guessInput);
+  const guesses = [...state.guesses, guess];
 
-  if (!resolved) {
-    return { ...state, wrongGuesses: [...state.wrongGuesses, guess] };
+  if (!guess.isNeighbor) {
+    return { ...state, guesses };
   }
 
-  const alreadyGuessed =
-    resolved === state.start || state.correctGuesses.includes(resolved);
-  if (alreadyGuessed) {
-    return { ...state, wrongGuesses: [...state.wrongGuesses, resolved] };
-  }
+  const neighborsOfGuess = countryAdjacency[guess.country] ?? [];
+  const isWon = guess.country === state.end || neighborsOfGuess.includes(state.end);
 
-  const lastCorrect = getLastCorrectCountry(state);
-  const neighborsOfLastCorrect = countryAdjacency[lastCorrect] ?? [];
-
-  if (!neighborsOfLastCorrect.includes(resolved)) {
-    return { ...state, wrongGuesses: [...state.wrongGuesses, resolved] };
-  }
-
-  const correctGuesses = [...state.correctGuesses, resolved];
-  const neighborsOfGuess = countryAdjacency[resolved] ?? [];
-  const isWon = resolved === state.end || neighborsOfGuess.includes(state.end);
-
-  return { ...state, correctGuesses, isWon };
-}
-
-/**
- * Reports how many countries in the REFERENCE optimal path
- * (`state.optimalPath`) lie between the last correctly guessed country
- * and `guess`, if `guess` sits further ahead in that path than the
- * immediate next step.
- *
- * Works purely off positions within `optimalPath` (not a fresh graph
- * traversal) and does NOT check whether `guess` is actually a valid
- * neighbor — `submitGuess` already handles that. If either country isn't
- * part of `optimalPath` (e.g. because the player took an alternate route
- * not covered by this reference path), this returns 0, since "skipped"
- * isn't meaningfully defined against that reference path in that case.
- */
-export function getSkippedCount(state: GameState, guess: string): number {
-  const resolved = resolveCountryName(guess) ?? guess;
-  const lastCorrect = getLastCorrectCountry(state);
-
-  const lastIndex = state.optimalPath.indexOf(lastCorrect);
-  const guessIndex = state.optimalPath.indexOf(resolved);
-
-  if (lastIndex === -1 || guessIndex === -1) {
-    return 0;
-  }
-
-  return Math.max(0, guessIndex - lastIndex - 1);
-}
-
-/**
- * Computes, for each guess made so far, how many countries were skipped
- * (see {@link getSkippedCount}). Used both for the per-row display
- * (`GuessList`) and for the emoji grid in the share result
- * (`ResultSummary`), so both use the exact same logic.
- */
-export function computeSkipCounts(state: GameState): number[] {
-  return state.correctGuesses.map((guess, index) => {
-    const stateBeforeThisGuess: GameState = {
-      ...state,
-      correctGuesses: state.correctGuesses.slice(0, index),
-    };
-    return getSkippedCount(stateBeforeThisGuess, guess);
-  });
+  return { ...state, guesses, isWon };
 }
 
 // ---------------------------------------------------------------------

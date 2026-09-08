@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { GameState } from "../game/gameEngine";
+import { getConfirmedChain, type GameState } from "../game/gameEngine";
 import { buildEmojiGrid, buildShareText } from "../game/shareResult";
 import styles from "./ResultSummary.module.css";
 
@@ -47,7 +47,7 @@ export function ResultSummary({ state }: ResultSummaryProps) {
     return null;
   }
 
-  const steps = state.correctGuesses.length;
+  const steps = getConfirmedChain(state).length;
   const optimalSteps = state.optimalPath.length - 2;
   const tookOptimalRoute = steps <= optimalSteps;
 

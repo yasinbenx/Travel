@@ -1,37 +1,34 @@
-import { computeSkipCounts, type GameState } from "./gameEngine";
+import { getConfirmedChain, type GameState, type GuessQuality } from "./gameEngine";
 
-const CORRECT_EMOJI = "🟩";
-const SKIPPED_EMOJI = "🟨";
-const WRONG_EMOJI = "⬜";
+const QUALITY_EMOJI: Record<GuessQuality, string> = {
+  gold: "🟨",
+  green: "🟩",
+  orange: "🟧",
+  red: "🟥",
+};
 
 /**
- * Builds the Wordle-style emoji grid for a won game: one tile per correct
- * guess (green = direct next step, yellow = countries were skipped),
- * followed by one gray tile per wrong guess.
- *
- * Note: `GameState` stores correct and wrong guesses in separate arrays
- * (no shared chronological order), so the gray tiles for wrong guesses
- * are appended here rather than interleaved chronologically with the
- * green/yellow tiles.
+ * Builds the Wordle-style emoji grid for a won game: one tile per guess,
+ * in the exact order they were made, colored by quality (gold/green =
+ * on the shortest route, orange = a small detour, red = a bad move or
+ * not even a real neighbor). Unlike the old correct/wrong split, this
+ * reflects the full guess history in one chronological row.
  */
 export function buildEmojiGrid(state: GameState): string {
-  const skipCounts = computeSkipCounts(state);
-  const correctSquares = skipCounts.map((skipped) =>
-    skipped > 0 ? SKIPPED_EMOJI : CORRECT_EMOJI,
-  );
-  const wrongSquares = state.wrongGuesses.map(() => WRONG_EMOJI);
-  return [...correctSquares, ...wrongSquares].join("");
+  return state.guesses.map((guess) => QUALITY_EMOJI[guess.quality]).join("");
 }
 
 /** Builds the full result text that gets copied to the clipboard. */
 export function buildShareText(state: GameState): string {
-  const steps = state.correctGuesses.length;
+  const steps = getConfirmedChain(state).length;
   const optimalSteps = state.optimalPath.length - 2;
-  const wrongCount = state.wrongGuesses.length;
+  const detourGuesses = state.guesses.length - steps;
 
   const statsLine =
     `${steps} ${steps === 1 ? "step" : "steps"} · optimal: ${optimalSteps}` +
-    (wrongCount > 0 ? ` · ${wrongCount} wrong ${wrongCount === 1 ? "guess" : "guesses"}` : "");
+    (detourGuesses > 0
+      ? ` · ${detourGuesses} off-path ${detourGuesses === 1 ? "guess" : "guesses"}`
+      : "");
 
   return [`BorderHop – ${state.start} → ${state.end}`, statsLine, buildEmojiGrid(state)].join(
     "\n",

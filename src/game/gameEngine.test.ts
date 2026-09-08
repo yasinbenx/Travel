@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { findShortestPath } from "../lib/findShortestPath";
 import {
+  evaluateGuessQuality,
   generateRandomPuzzle,
-  getSkippedCount,
+  getConfirmedChain,
   resolveCountryName,
   submitGuess,
   type GameState,
@@ -13,8 +14,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     start: "Germany",
     end: "Italy",
     optimalPath: ["Germany", "Austria", "Italy"],
-    correctGuesses: [],
-    wrongGuesses: [],
+    guesses: [],
     isWon: false,
     ...overrides,
   };
@@ -51,33 +51,49 @@ describe("resolveCountryName", () => {
   });
 });
 
-describe("submitGuess", () => {
-  it("accepts a direct neighbor of the start as a correct guess", () => {
+describe("submitGuess: neighbor vs. non-neighbor", () => {
+  it("accepts a direct neighbor of the start and extends the confirmed chain", () => {
     const state = makeState({ start: "France", end: "Spain", optimalPath: ["France", "Spain"] });
     const result = submitGuess(state, "Spain");
-    expect(result.correctGuesses).toEqual(["Spain"]);
-    expect(result.wrongGuesses).toEqual([]);
+    expect(getConfirmedChain(result)).toEqual(["Spain"]);
+    expect(result.guesses).toEqual([{ country: "Spain", quality: "gold", isNeighbor: true }]);
   });
 
-  it("rejects a guess that isn't a neighbor", () => {
+  it("still shows a non-neighbor guess in the guess list, but doesn't extend the chain", () => {
     const state = makeState({ start: "Germany", end: "Italy" });
     const result = submitGuess(state, "Japan");
-    expect(result.correctGuesses).toEqual([]);
-    expect(result.wrongGuesses).toEqual(["Japan"]);
+    expect(result.guesses).toEqual([{ country: "Japan", quality: "red", isNeighbor: false }]);
+    expect(getConfirmedChain(result)).toEqual([]);
     expect(result.isWon).toBe(false);
+  });
+
+  it("Morocco -> Germany: guessing the USA shows up as a red, non-neighbor guess and doesn't move the chain off Morocco", () => {
+    const optimalPath = findShortestPath("Morocco", "Germany");
+    let state = makeState({ start: "Morocco", end: "Germany", optimalPath });
+    state = submitGuess(state, "USA");
+
+    expect(state.guesses).toEqual([
+      { country: "United States", quality: "red", isNeighbor: false },
+    ]);
+    expect(getConfirmedChain(state)).toEqual([]);
+    expect(state.isWon).toBe(false);
+
+    // The next guess still has to be a real neighbor of Morocco (the chain never moved).
+    state = submitGuess(state, "Spain");
+    expect(getConfirmedChain(state)).toEqual(["Spain"]);
   });
 
   it("wins on the first move if the guess directly borders the target (Germany -> Austria -> Italy)", () => {
     const state = makeState({ start: "Germany", end: "Italy", optimalPath: ["Germany", "Austria", "Italy"] });
     const result = submitGuess(state, "Austria");
-    expect(result.correctGuesses).toEqual(["Austria"]);
+    expect(getConfirmedChain(result)).toEqual(["Austria"]);
     expect(result.isWon).toBe(true);
   });
 
   it("wins when the target country itself is guessed directly", () => {
     const state = makeState({ start: "Portugal", end: "Spain", optimalPath: ["Portugal", "Spain"] });
     const result = submitGuess(state, "Spain");
-    expect(result.correctGuesses).toEqual(["Spain"]);
+    expect(getConfirmedChain(result)).toEqual(["Spain"]);
     expect(result.isWon).toBe(true);
   });
 
@@ -95,7 +111,7 @@ describe("submitGuess", () => {
     // Russia directly borders Finland -> win, without guessing "Finland" itself.
     state = submitGuess(state, "Russia");
     expect(state.isWon).toBe(true);
-    expect(state.correctGuesses).toEqual(["Spain", "France", "Germany", "Poland", "Russia"]);
+    expect(getConfirmedChain(state)).toEqual(["Spain", "France", "Germany", "Poland", "Russia"]);
   });
 
   it("accepts a valid alternate route that is longer than the optimal path (regression test: validity must be adjacency-only, not restricted to optimalPath)", () => {
@@ -113,10 +129,11 @@ describe("submitGuess", () => {
     for (const guess of ["Spain", "Morocco", "Algeria", "Tunisia", "Libya", "Chad", "Central African Republic"]) {
       state = submitGuess(state, guess);
       expect(state.isWon).toBe(false);
+      expect(state.guesses[state.guesses.length - 1].isNeighbor).toBe(true);
     }
     state = submitGuess(state, "DR Congo"); // borders Rwanda -> win
     expect(state.isWon).toBe(true);
-    expect(state.correctGuesses).toEqual([
+    expect(getConfirmedChain(state)).toEqual([
       "Spain",
       "Morocco",
       "Algeria",
@@ -128,132 +145,120 @@ describe("submitGuess", () => {
     ]);
     // One more guess than the optimal path's intermediate country count (7),
     // proving a longer, non-optimal but valid route is accepted and wins.
-    expect(state.correctGuesses.length).toBe(state.optimalPath.length - 2 + 1);
+    expect(getConfirmedChain(state).length).toBe(state.optimalPath.length - 2 + 1);
   });
 
   it("is tolerant of casing, accents, and aliases", () => {
     let state = makeState({ start: "Germany", end: "Italy" });
     state = submitGuess(state, "österreich");
-    expect(state.correctGuesses).toEqual(["Austria"]);
+    expect(getConfirmedChain(state)).toEqual(["Austria"]);
     expect(state.isWon).toBe(true);
   });
 
-  it("treats an unknown country name as a wrong guess instead of throwing", () => {
+  it("treats an unrecognized country name as a red, non-neighbor guess instead of throwing", () => {
     const state = makeState({ start: "Germany", end: "Italy" });
     const result = submitGuess(state, "Absurdistan");
-    expect(result.wrongGuesses).toEqual(["Absurdistan"]);
-    expect(result.correctGuesses).toEqual([]);
+    expect(result.guesses).toEqual([{ country: "Absurdistan", quality: "red", isNeighbor: false }]);
+    expect(getConfirmedChain(result)).toEqual([]);
   });
 
-  it("treats a repeated guess (already correctly guessed) as a wrong guess", () => {
+  it("treats a repeated guess (the game is already won) as a complete no-op", () => {
     let state = makeState({ start: "Germany", end: "Italy" });
     state = submitGuess(state, "Austria");
     expect(state.isWon).toBe(true);
-    // The game is already won: state stays completely unchanged.
     const afterWin = submitGuess(state, "Switzerland");
     expect(afterWin).toEqual(state);
   });
 
-  it("treats re-guessing the start country as a wrong guess", () => {
+  it("treats re-guessing the start country as a red, non-neighbor guess (a country isn't its own neighbor)", () => {
     const state = makeState({ start: "Germany", end: "Italy" });
     const result = submitGuess(state, "Germany");
-    expect(result.wrongGuesses).toEqual(["Germany"]);
-    expect(result.correctGuesses).toEqual([]);
+    expect(result.guesses).toEqual([{ country: "Germany", quality: "red", isNeighbor: false }]);
+    expect(getConfirmedChain(result)).toEqual([]);
   });
 
-  it("otherwise leaves the state unchanged on a wrong guess", () => {
+  it("otherwise leaves the confirmed chain unchanged on a non-neighbor guess", () => {
     let state = makeState({ start: "Germany", end: "Italy" });
-    state = submitGuess(state, "Poland"); // correct (neighbor of Germany, doesn't border Italy)
+    state = submitGuess(state, "Poland"); // real neighbor of Germany, doesn't border Italy
     expect(state.isWon).toBe(false);
     const before = state;
-    const after = submitGuess(state, "Japan"); // wrong (not a neighbor of Poland)
-    expect(after.correctGuesses).toEqual(before.correctGuesses);
+    const after = submitGuess(state, "Japan"); // not a neighbor of Poland
+    expect(getConfirmedChain(after)).toEqual(getConfirmedChain(before));
     expect(after.start).toBe(before.start);
     expect(after.end).toBe(before.end);
     expect(after.isWon).toBe(before.isWon);
-    expect(after.wrongGuesses).toEqual([...before.wrongGuesses, "Japan"]);
+    expect(after.guesses).toEqual([
+      ...before.guesses,
+      { country: "Japan", quality: "red", isNeighbor: false },
+    ]);
   });
 });
 
-describe("getSkippedCount", () => {
-  const referencePath = [
-    "Germany",
-    "Austria",
-    "Slovenia",
-    "Croatia",
-    "Bosnia and Herzegovina",
-  ];
-
-  it("returns 0 when the immediate next step in the path is guessed", () => {
-    const state = makeState({
-      start: "Germany",
-      end: "Bosnia and Herzegovina",
-      optimalPath: referencePath,
-      correctGuesses: ["Austria"],
+describe("evaluateGuessQuality", () => {
+  it("grades a neighbor that matches the reference optimal path's next step as gold", () => {
+    const state = makeState({ start: "Germany", end: "Italy", optimalPath: ["Germany", "Austria", "Italy"] });
+    expect(evaluateGuessQuality(state, "Austria")).toEqual({
+      country: "Austria",
+      quality: "gold",
+      isNeighbor: true,
     });
-    expect(getSkippedCount(state, "Slovenia")).toBe(0);
   });
 
-  it("counts skipped countries when a further-ahead path entry is guessed", () => {
-    const state = makeState({
-      start: "Germany",
-      end: "Bosnia and Herzegovina",
-      optimalPath: referencePath,
-      correctGuesses: ["Austria"],
+  it("grades a neighbor that keeps the route equally short, but isn't the reference path's next step, as green", () => {
+    // Germany -> Italy's real shortest path goes via Austria or Switzerland
+    // (both are real Germany neighbors that directly border Italy). Whichever
+    // one findShortestPath picked as the reference, the other one is an
+    // equally short — but different — next step.
+    const optimalPath = findShortestPath("Germany", "Italy");
+    const referenceNextStep = optimalPath[1];
+    const alternateNeighbor = referenceNextStep === "Austria" ? "Switzerland" : "Austria";
+
+    const state = makeState({ start: "Germany", end: "Italy", optimalPath });
+    expect(evaluateGuessQuality(state, alternateNeighbor)).toEqual({
+      country: alternateNeighbor,
+      quality: "green",
+      isNeighbor: true,
     });
-    // Slovenia and Croatia sit between Austria and Bosnia and Herzegovina.
-    expect(getSkippedCount(state, "Bosnia and Herzegovina")).toBe(2);
   });
 
-  it("counts the start as the first correct country when skipping", () => {
-    const state = makeState({
-      start: "Germany",
-      end: "Bosnia and Herzegovina",
-      optimalPath: referencePath,
-      correctGuesses: [],
+  it("grades a neighbor with a 1-2 country detour as orange", () => {
+    // Germany -> Italy is 2 hops (via Austria/Switzerland). Czech Republic is
+    // a real Germany neighbor, but is itself 2 hops from Italy (via Austria),
+    // making this guess 1 country longer than the shortest possible route.
+    const optimalPath = findShortestPath("Germany", "Italy");
+    const state = makeState({ start: "Germany", end: "Italy", optimalPath });
+    expect(evaluateGuessQuality(state, "Czech Republic")).toEqual({
+      country: "Czech Republic",
+      quality: "orange",
+      isNeighbor: true,
     });
-    // Austria sits between Germany (start) and Slovenia.
-    expect(getSkippedCount(state, "Slovenia")).toBe(1);
   });
 
-  it("returns 0 if the guess isn't part of the reference path", () => {
-    const state = makeState({
-      start: "Germany",
-      end: "Bosnia and Herzegovina",
-      optimalPath: referencePath,
-      correctGuesses: ["Austria"],
-    });
-    expect(getSkippedCount(state, "France")).toBe(0);
+  it("grades a neighbor as red once earlier detours have piled up a 3+ country total detour", () => {
+    // Germany -> Poland directly border each other (1 hop). Taking a first
+    // detour via France (2 hops from Poland via Germany, +1 country) leaves
+    // the chain already 1 country behind pace. A second sideways move from
+    // France to Spain (3 hops from Poland) piles on 3 more hops for one more
+    // step taken, compounding the total detour to 4 countries -> red, but
+    // Spain is still a real neighbor of France, so it still extends the chain.
+    const optimalPath = findShortestPath("Germany", "Poland");
+    let state = makeState({ start: "Germany", end: "Poland", optimalPath });
+
+    state = submitGuess(state, "France");
+    expect(state.guesses[0]).toEqual({ country: "France", quality: "orange", isNeighbor: true });
+
+    state = submitGuess(state, "Spain");
+    expect(state.guesses[1]).toEqual({ country: "Spain", quality: "red", isNeighbor: true });
+    expect(getConfirmedChain(state)).toEqual(["France", "Spain"]);
   });
 
-  it("returns 0 if the last correct country isn't in the reference path", () => {
-    const state = makeState({
-      start: "Germany",
-      end: "Bosnia and Herzegovina",
-      optimalPath: referencePath,
-      correctGuesses: ["Switzerland"],
+  it("grades a guess that isn't a real neighbor at all as red, regardless of how close or far it is", () => {
+    const state = makeState({ start: "Morocco", end: "Germany", optimalPath: findShortestPath("Morocco", "Germany") });
+    expect(evaluateGuessQuality(state, "United States")).toEqual({
+      country: "United States",
+      quality: "red",
+      isNeighbor: false,
     });
-    expect(getSkippedCount(state, "Croatia")).toBe(0);
-  });
-
-  it("returns 0 (not negative) on a backward step in the path", () => {
-    const state = makeState({
-      start: "Germany",
-      end: "Bosnia and Herzegovina",
-      optimalPath: referencePath,
-      correctGuesses: ["Croatia"],
-    });
-    expect(getSkippedCount(state, "Austria")).toBe(0);
-  });
-
-  it("is also alias-/casing-tolerant", () => {
-    const state = makeState({
-      start: "Germany",
-      end: "Bosnia and Herzegovina",
-      optimalPath: referencePath,
-      correctGuesses: [],
-    });
-    expect(getSkippedCount(state, "slovenia")).toBe(1);
   });
 });
 
