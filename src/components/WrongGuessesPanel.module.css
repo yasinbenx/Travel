@@ -1,0 +1,51 @@
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--wrong-text);
+  cursor: pointer;
+}
+
+.toggle:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.chevron {
+  transition: transform 0.15s ease;
+  color: var(--text-muted);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.content {
+  padding: 0 1rem 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: var(--wrong-bg);
+  color: var(--wrong-text);
+  border: 1px solid var(--wrong-border);
+}

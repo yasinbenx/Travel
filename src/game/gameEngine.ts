@@ -18,7 +18,13 @@ const MAX_INTERMEDIATE_STEPS = 8;
 // Namens-Normalisierung / Alias-Auflösung
 // ---------------------------------------------------------------------
 
-function normalize(input: string): string {
+/**
+ * Normalisiert einen Ländernamen für tolerante Vergleiche: Groß-/
+ * Kleinschreibung, Umlaute/Akzente sowie Satzzeichen spielen keine Rolle
+ * mehr. Wird sowohl von `resolveCountryName` als auch von der
+ * Autocomplete-Suche im UI genutzt, damit beide konsistent matchen.
+ */
+export function normalize(input: string): string {
   return input
     .trim()
     .toLowerCase()
