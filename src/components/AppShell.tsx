@@ -1,55 +1,46 @@
 import { useEffect, useState } from "react";
-import { createFreshGameState, getTodaySeed } from "../game/dailyGameState";
 import { submitGuess, type GameState } from "../game/gameEngine";
 import { loadGameState, saveGameState } from "../game/persistence";
+import { createRandomGameState } from "../game/randomGameState";
 import { GameBoard } from "./GameBoard";
 import { ResultScreen } from "./ResultScreen";
 import { StartScreen } from "./StartScreen";
 
-type Phase = "start" | "playing";
-
-function loadOrCreateGameState(): GameState {
-  const seed = getTodaySeed();
-  return loadGameState(seed) ?? createFreshGameState(seed);
-}
-
 /**
- * Top-Level-Komponente: lädt den Spielstand für das heutige Datum (oder
- * erzeugt ein frisches Rätsel) und schaltet je nach Zustand zwischen drei
- * Ansichten um:
- * - Ist das heutige Rätsel bereits gewonnen (egal ob gerade eben oder
- *   schon vor einem Reload) -> Ergebnis-Screen. Das wird direkt aus
- *   `gameState.isWon` abgeleitet, nicht über einen extra Zwischenschritt,
- *   damit ein Sieg sofort greift, sobald er im State steht.
- * - Sonst, falls der Spieler noch nicht auf "Spielen" getippt hat ->
- *   Startbildschirm mit "Spielen"/"Weiterspielen"-Button.
- * - Sonst das eigentliche Spielbrett.
+ * Top-level component: loads any in-progress/finished game from
+ * localStorage (if any) and switches between three views based on that
+ * state, purely derived on every render — no extra "phase" state to keep
+ * in sync:
+ * - No saved state yet -> start screen with a "Play" button. Clicking it
+ *   generates a brand-new random puzzle (there is no daily puzzle).
+ * - Saved state exists and is already won -> result screen (works
+ *   identically right after winning and after a reload, since it's read
+ *   straight off `gameState.isWon`).
+ * - Otherwise -> the game board, resuming any in-progress guesses.
  */
 export function AppShell() {
-  const [gameState, setGameState] = useState<GameState>(loadOrCreateGameState);
-  const [phase, setPhase] = useState<Phase>("start");
+  const [gameState, setGameState] = useState<GameState | null>(() => loadGameState());
 
   useEffect(() => {
-    saveGameState(getTodaySeed(), gameState);
+    if (gameState) {
+      saveGameState(gameState);
+    }
   }, [gameState]);
 
   function handleGuess(guess: string) {
-    setGameState((prev) => submitGuess(prev, guess));
+    setGameState((prev) => (prev ? submitGuess(prev, guess) : prev));
+  }
+
+  function handleNewGame() {
+    setGameState(createRandomGameState());
+  }
+
+  if (!gameState) {
+    return <StartScreen onStart={handleNewGame} />;
   }
 
   if (gameState.isWon) {
-    return <ResultScreen state={gameState} />;
-  }
-
-  if (phase === "start") {
-    return (
-      <StartScreen
-        start={gameState.start}
-        end={gameState.end}
-        hasProgress={gameState.correctGuesses.length > 0}
-        onStart={() => setPhase("playing")}
-      />
-    );
+    return <ResultScreen state={gameState} onPlayAgain={handleNewGame} />;
   }
 
   return <GameBoard state={gameState} onGuess={handleGuess} />;

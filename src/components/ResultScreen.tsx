@@ -6,15 +6,17 @@ import styles from "./ResultScreen.module.css";
 
 type ResultScreenProps = {
   state: GameState;
+  onPlayAgain: () => void;
 };
 
 /**
- * Wird gezeigt, wenn das heutige Rätsel bereits abgeschlossen ist (frisch
- * nach dem Sieg oder nach einem erneuten Seitenaufruf aus dem
- * localStorage-Spielstand). Zeigt die Ergebnis-Zusammenfassung sowie —
- * read-only, ohne Eingabefeld — die Karte mit dem final gefundenen Pfad.
+ * Shown once the round is won (right after winning, or after a reload
+ * that restores a finished game from localStorage). Displays the result
+ * summary plus — read-only, with no input field — the map of the final
+ * path that was found, and a "Play again" button that starts a brand-new
+ * random puzzle.
  */
-export function ResultScreen({ state }: ResultScreenProps) {
+export function ResultScreen({ state, onPlayAgain }: ResultScreenProps) {
   const revealedCountries = [state.start, ...state.correctGuesses];
 
   return (
@@ -28,6 +30,12 @@ export function ResultScreen({ state }: ResultScreenProps) {
       <main className={styles.mapArea}>
         <MapView revealedCountries={revealedCountries} target={state.end} isWon={state.isWon} />
       </main>
+
+      <footer className={styles.footer}>
+        <button type="button" className={styles.playAgainButton} onClick={onPlayAgain}>
+          Play again
+        </button>
+      </footer>
     </div>
   );
 }

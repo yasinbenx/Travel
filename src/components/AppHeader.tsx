@@ -6,11 +6,11 @@ type AppHeaderProps = {
   end: string;
 };
 
-/** Schlanke Kopfzeile mit Titel und kompakter Start/Ziel-Anzeige, gemeinsam genutzt von GameBoard und ResultScreen. */
+/** Slim header with the app title and a compact start/target display, shared by GameBoard and ResultScreen. */
 export function AppHeader({ start, end }: AppHeaderProps) {
   return (
     <header className={styles.header}>
-      <h1 className={styles.title}>Travle-Klon</h1>
+      <h1 className={styles.title}>BorderHop</h1>
       <StartEndBox start={start} end={end} compact />
     </header>
   );

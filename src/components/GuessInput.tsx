@@ -6,7 +6,7 @@ import styles from "./GuessInput.module.css";
 type GuessInputProps = {
   onGuess: (guess: string) => void;
   disabled?: boolean;
-  /** Ländernamen, die nicht mehr vorgeschlagen werden sollen (Start + bereits korrekt geratene). */
+  /** Country names that should no longer be suggested (start + already correctly guessed). */
   excludeNames?: string[];
 };
 
@@ -14,9 +14,9 @@ const ALL_COUNTRIES = Object.keys(countryAdjacency).sort();
 const MAX_SUGGESTIONS = 8;
 
 /**
- * Texteingabe mit Autocomplete-Dropdown. Schlägt beim Tippen passende
- * Länder aus der Adjazenzliste vor; Enter oder ein Klick auf einen
- * Vorschlag übernimmt die Auswahl und meldet sie über `onGuess`.
+ * Text input with an autocomplete dropdown. Suggests matching countries
+ * from the adjacency list as the player types; Enter or clicking a
+ * suggestion applies the selection and reports it via `onGuess`.
  */
 export function GuessInput({ onGuess, disabled = false, excludeNames = [] }: GuessInputProps) {
   const [value, setValue] = useState("");
@@ -90,7 +90,7 @@ export function GuessInput({ onGuess, disabled = false, excludeNames = [] }: Gue
         autoComplete="off"
         autoCapitalize="words"
         spellCheck={false}
-        placeholder="Land eingeben…"
+        placeholder="Type a country…"
         value={value}
         disabled={disabled}
         onChange={handleChange}
@@ -99,7 +99,7 @@ export function GuessInput({ onGuess, disabled = false, excludeNames = [] }: Gue
         onBlur={() => setIsOpen(false)}
         aria-autocomplete="list"
         aria-expanded={showDropdown}
-        aria-label="Land raten"
+        aria-label="Guess a country"
       />
       {showDropdown && (
         <ul className={styles.dropdown} role="listbox">
@@ -113,8 +113,8 @@ export function GuessInput({ onGuess, disabled = false, excludeNames = [] }: Gue
                   ? `${styles.option} ${styles.optionActive}`
                   : styles.option
               }
-              // onMouseDown (statt onClick) feuert vor dem Blur des Inputs,
-              // sonst würde das Dropdown vorher schon verschwinden.
+              // onMouseDown (instead of onClick) fires before the input's
+              // blur, otherwise the dropdown would already have vanished.
               onMouseDown={(event) => {
                 event.preventDefault();
                 submit(name);

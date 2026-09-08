@@ -16,10 +16,10 @@ async function copyToClipboard(text: string): Promise<boolean> {
       return true;
     }
   } catch {
-    // Fällt unten auf die execCommand-Variante zurück.
+    // Falls through to the execCommand fallback below.
   }
 
-  // Fallback für Kontexte ohne (oder mit blockierter) Clipboard-API.
+  // Fallback for contexts without (or with blocked) Clipboard API access.
   try {
     const textarea = document.createElement("textarea");
     textarea.value = text;
@@ -36,10 +36,9 @@ async function copyToClipboard(text: string): Promise<boolean> {
 }
 
 /**
- * Erscheint, sobald das Rätsel gelöst ist: zeigt die eigene Schrittzahl
- * im Vergleich zur optimalen Schrittzahl sowie ein Wordle-artiges
- * Emoji-Grid, das per Klick als Ergebnistext in die Zwischenablage
- * kopiert werden kann.
+ * Appears once the round is won: shows the player's own step count
+ * compared to the optimal step count, plus a Wordle-style emoji grid
+ * that can be copied to the clipboard as shareable result text.
  */
 export function ResultSummary({ state }: ResultSummaryProps) {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle");
@@ -60,26 +59,26 @@ export function ResultSummary({ state }: ResultSummaryProps) {
 
   const shareLabel =
     copyStatus === "copied"
-      ? "✅ Kopiert!"
+      ? "✅ Copied!"
       : copyStatus === "error"
-        ? "Kopieren fehlgeschlagen"
-        : "📋 Teilen";
+        ? "Copy failed"
+        : "📋 Share";
 
   return (
     <div className={styles.card} role="status">
-      <p className={styles.heading}>🎉 Geschafft!</p>
+      <p className={styles.heading}>🎉 You made it!</p>
       <p className={styles.stats}>
-        {steps} {steps === 1 ? "Schritt" : "Schritte"} · optimal: {optimalSteps}
+        {steps} {steps === 1 ? "step" : "steps"} · optimal: {optimalSteps}
       </p>
       <p className={styles.grid} aria-hidden="true">
         {buildEmojiGrid(state)}
       </p>
 
       {tookOptimalRoute ? (
-        <p className={styles.optimalMessage}>🏆 Du hast die optimale Route gewählt!</p>
+        <p className={styles.optimalMessage}>🏆 You found the optimal route!</p>
       ) : (
         <div className={styles.optimalRoute}>
-          <p className={styles.optimalRouteLabel}>Optimale Route wäre gewesen:</p>
+          <p className={styles.optimalRouteLabel}>The optimal route would have been:</p>
           <p className={styles.optimalRoutePath}>{state.optimalPath.join(" → ")}</p>
         </div>
       )}

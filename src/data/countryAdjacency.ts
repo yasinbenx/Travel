@@ -1,70 +1,72 @@
 /**
- * Adjazenzliste aller Länder der Welt (Landgrenzen).
+ * Adjacency list of all countries in the world (land borders).
  *
- * Grundlage: gängige geografische Referenzdaten (u.a. CIA World Factbook
- * "Land boundaries", Natural Earth Admin-0 Grenzpolygone). Nur direkte
- * LANDGRENZEN sind enthalten — reine Seegrenzen (z.B. Dänemark/Schweden
- * über den Öresund, Spanien/Marokko über die Straße von Gibraltar
- * abseits von Ceuta/Melilla) zählen NICHT als Nachbarschaft.
+ * Basis: common geographic reference data (among others, the CIA World
+ * Factbook's "Land boundaries" and Natural Earth's Admin-0 border
+ * polygons). Only direct LAND BORDERS are included — pure sea borders
+ * (e.g. Denmark/Sweden across the Øresund, Spain/Morocco across the
+ * Strait of Gibraltar outside of Ceuta/Melilla) do NOT count as
+ * neighbors.
  *
- * Umfang: alle 193 UN-Mitgliedsstaaten plus eine kleine Zahl weiterer,
- * in Geografie-/Ratespielen üblicher Gebiete, die eine eigene,
- * zusammenhängende Landmasse mit eigenen Grenzen haben: Kosovo, Taiwan,
- * Westsahara, Palästina und Französisch-Guayana. Kleinere Exklaven/
- * Überseegebiete ohne eigene Landgrenzen (z.B. Grönland, Puerto Rico,
- * Hongkong) sind bewusst NICHT als eigene Einträge aufgenommen, da sie
- * für das Pathfinding-Fundament nicht relevant sind.
+ * Scope: all 193 UN member states plus a small number of additional
+ * territories common in geography/guessing games that have their own
+ * contiguous landmass with its own borders: Kosovo, Taiwan, Western
+ * Sahara, Palestine, and French Guiana. Smaller exclaves/overseas
+ * territories with no land border of their own (e.g. Greenland, Puerto
+ * Rico, Hong Kong) are deliberately NOT included as separate entries,
+ * since they aren't relevant to the pathfinding foundation.
  *
- * Sonderfälle / strittige Grenzen (Begründung der gewählten Version):
+ * Special cases / disputed borders (rationale for the chosen version):
  *
- * - Russland/Kaliningrad: Kaliningrad ist eine russische Exklave zwischen
- *   Polen und Litauen. Da es politisch zu Russland gehört, zählen die
- *   Grenzen Kaliningrad–Polen und Kaliningrad–Litauen als Grenzen
- *   Russlands (macht Polen und Litauen zu direkten Nachbarn Russlands,
- *   zusätzlich zur "Hauptgrenze" weiter östlich). Damit hat Russland die
- *   bekannten 14 Nachbarn.
- * - Westsahara/Marokko: Marokko kontrolliert den Großteil der Westsahara
- *   de facto, das Gebiet ist völkerrechtlich aber nicht annektiert und
- *   wird hier als eigenständiges Gebiet mit Grenzen zu Marokko, Algerien
- *   und Mauretanien geführt (Referenzdaten wie Natural Earth führen es
- *   ebenfalls separat).
- * - Marokko/Spanien: Die spanischen Exklaven Ceuta und Melilla liegen auf
- *   dem afrikanischen Festland und grenzen an Marokko. Diese Landgrenze
- *   wird hier Spanien zugerechnet (Spanien ↔ Marokko sind damit direkte
- *   Nachbarn), obwohl das spanische Kernland selbst nicht an Marokko
- *   grenzt.
- * - Zypern: Wird als eine Insel ohne Landnachbarn geführt. Die Teilung in
- *   die Republik Zypern und die international (außer von der Türkei)
- *   nicht anerkannte "Türkische Republik Nordzypern" ändert daran nichts,
- *   da es sich um eine innerinsulare Grenze auf ein und derselben
- *   Landmasse handelt, nicht um eine Grenze zu einem anderen Staat.
- * - Israel/Palästina: Palästina (Gazastreifen + Westjordanland) wird als
- *   ein zusammenhängender Eintrag geführt mit Grenzen zu Israel, Ägypten
- *   (Gazastreifen/Rafah) und Jordanien (Westjordanland/Jordantal), obwohl
- *   Gazastreifen und Westjordanland geografisch nicht zusammenhängen.
- *   Für ein Länder-Ratespiel wird dies vereinfacht als eine Entität
- *   behandelt, analog zur Darstellung in vielen gängigen Länder-Datasets.
- * - Kosovo: Wird als eigenständiges Gebiet mit Grenzen zu Serbien,
- *   Montenegro, Albanien und Nordmazedonien geführt, obwohl die
- *   Unabhängigkeit von Serbien nicht anerkannt wird. Das entspricht der
- *   gängigen Praxis in Geografie-Datasets/-Spielen (inkl. travle.earth).
- * - Botswana/Sambia: Die beiden Länder berühren sich an einem sehr kurzen
- *   Vierländereck (Kazungula) von wenigen hundert Metern Länge. Dies wird
- *   in den meisten aktuellen geografischen Datasets als reale Landgrenze
- *   geführt und daher hier übernommen. Namibia/Simbabwe hingegen berühren
- *   sich an diesem Vierländereck NICHT (sie liegen sich nur diagonal
- *   gegenüber) und werden daher nicht als Nachbarn geführt.
- * - Indien/Afghanistan: Es gibt keine von Indien tatsächlich kontrollierte
- *   Grenze zu Afghanistan (die geografische Nähe besteht nur über das von
- *   Pakistan verwaltete Kaschmir). Beide Länder gelten hier daher NICHT
- *   als direkte Nachbarn, konsistent mit den meisten Standard-Datasets.
- * - Taiwan: Wird als eigenständiges Gebiet ohne Landnachbarn geführt
- *   (Insel), unabhängig vom politischen Status.
+ * - Russia/Kaliningrad: Kaliningrad is a Russian exclave between Poland
+ *   and Lithuania. Since it politically belongs to Russia, the
+ *   Kaliningrad–Poland and Kaliningrad–Lithuania borders count as
+ *   Russia's own borders (making Poland and Lithuania direct neighbors
+ *   of Russia, in addition to the "main border" further east). This
+ *   gives Russia its well-known 14 neighbors.
+ * - Western Sahara/Morocco: Morocco de facto controls most of Western
+ *   Sahara, but the territory isn't annexed under international law and
+ *   is listed here as its own territory with borders to Morocco,
+ *   Algeria, and Mauritania (reference data such as Natural Earth also
+ *   lists it separately).
+ * - Morocco/Spain: The Spanish exclaves Ceuta and Melilla sit on the
+ *   African mainland and border Morocco. This land border is attributed
+ *   here to Spain (making Spain ↔ Morocco direct neighbors), even though
+ *   mainland Spain itself doesn't border Morocco.
+ * - Cyprus: Listed as one island with no land neighbors. The division
+ *   into the Republic of Cyprus and the internationally unrecognized
+ *   (except by Turkey) "Turkish Republic of Northern Cyprus" doesn't
+ *   change this, since it's an internal border on one and the same
+ *   landmass, not a border to another state.
+ * - Israel/Palestine: Palestine (Gaza Strip + West Bank) is listed as one
+ *   combined entry with borders to Israel, Egypt (Gaza Strip/Rafah), and
+ *   Jordan (West Bank/Jordan Valley), even though the Gaza Strip and West
+ *   Bank aren't geographically contiguous. For a country-guessing game
+ *   this is simplified as one entity, matching how many common country
+ *   datasets represent it.
+ * - Kosovo: Listed as its own territory with borders to Serbia,
+ *   Montenegro, Albania, and North Macedonia, even though its
+ *   independence from Serbia isn't universally recognized. This matches
+ *   common practice in geography datasets/games (including
+ *   travle.earth).
+ * - Botswana/Zambia: The two countries touch at a very short
+ *   quadripoint (Kazungula) just a few hundred meters long. Most current
+ *   geographic datasets list this as a real land border, so it's
+ *   included here too. Namibia/Zimbabwe, on the other hand, do NOT touch
+ *   at this quadripoint (they only sit diagonally across from each
+ *   other) and are therefore not listed as neighbors.
+ * - India/Afghanistan: There is no border between India and Afghanistan
+ *   actually controlled by India (the geographic proximity only exists
+ *   via Pakistan-administered Kashmir). Both countries are therefore NOT
+ *   treated as direct neighbors here, consistent with most standard
+ *   datasets.
+ * - Taiwan: Listed as its own territory with no land neighbors (an
+ *   island), regardless of political status.
  */
 
 export const countryAdjacency: Record<string, string[]> = {
   // ---------------------------------------------------------------------
-  // EUROPA
+  // EUROPE
   // ---------------------------------------------------------------------
   Albania: ["Montenegro", "Kosovo", "North Macedonia", "Greece"],
   Andorra: ["France", "Spain"],
@@ -174,7 +176,7 @@ export const countryAdjacency: Record<string, string[]> = {
   "Vatican City": ["Italy"],
 
   // ---------------------------------------------------------------------
-  // ASIEN
+  // ASIA
   // ---------------------------------------------------------------------
   Afghanistan: ["Iran", "Turkmenistan", "Uzbekistan", "Tajikistan", "China", "Pakistan"],
   Armenia: ["Georgia", "Azerbaijan", "Iran", "Turkey"],
@@ -249,7 +251,7 @@ export const countryAdjacency: Record<string, string[]> = {
   Yemen: ["Saudi Arabia", "Oman"],
 
   // ---------------------------------------------------------------------
-  // AFRIKA
+  // AFRICA
   // ---------------------------------------------------------------------
   Algeria: ["Morocco", "Western Sahara", "Tunisia", "Libya", "Niger", "Mali", "Mauritania"],
   Angola: ["Namibia", "Zambia", "DR Congo", "Republic of Congo"],
@@ -363,7 +365,7 @@ export const countryAdjacency: Record<string, string[]> = {
   Zimbabwe: ["Zambia", "Mozambique", "South Africa", "Botswana"],
 
   // ---------------------------------------------------------------------
-  // NORDAMERIKA
+  // NORTH AMERICA
   // ---------------------------------------------------------------------
   "Antigua and Barbuda": [],
   Bahamas: [],
@@ -390,7 +392,7 @@ export const countryAdjacency: Record<string, string[]> = {
   "United States": ["Canada", "Mexico"],
 
   // ---------------------------------------------------------------------
-  // SÜDAMERIKA
+  // SOUTH AMERICA
   // ---------------------------------------------------------------------
   Argentina: ["Chile", "Bolivia", "Paraguay", "Brazil", "Uruguay"],
   Bolivia: ["Peru", "Brazil", "Paraguay", "Argentina", "Chile"],
@@ -418,7 +420,7 @@ export const countryAdjacency: Record<string, string[]> = {
   Venezuela: ["Colombia", "Brazil", "Guyana"],
 
   // ---------------------------------------------------------------------
-  // OZEANIEN
+  // OCEANIA
   // ---------------------------------------------------------------------
   Australia: [],
   Fiji: [],

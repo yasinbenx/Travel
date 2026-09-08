@@ -3,13 +3,14 @@ import styles from "./StartEndBox.module.css";
 type StartEndBoxProps = {
   start: string;
   end: string;
-  /** Schlanke Einzeilen-Variante für die Kopfleiste über der Karte. */
+  /** Slim single-line variant for the header bar above the map. */
   compact?: boolean;
 };
 
 /**
- * Zeigt Start- und Zielland fest und eingerahmt an. Beide Länder stehen
- * für die Dauer der Runde fest und sind hier nicht veränderbar.
+ * Shows the start and target country as a fixed, framed display. Both
+ * countries are fixed for the duration of the round and can't be changed
+ * here.
  */
 export function StartEndBox({ start, end, compact = false }: StartEndBoxProps) {
   if (compact) {
@@ -34,7 +35,7 @@ export function StartEndBox({ start, end, compact = false }: StartEndBoxProps) {
         &rarr;
       </span>
       <div className={`${styles.box} ${styles.end}`}>
-        <span className={styles.label}>Ziel</span>
+        <span className={styles.label}>Target</span>
         <span className={styles.country}>{end}</span>
       </div>
     </div>

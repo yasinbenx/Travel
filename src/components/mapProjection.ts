@@ -1,11 +1,11 @@
 import { geoEqualEarth, geoPath, type GeoPath, type GeoProjection } from "d3-geo";
 
 /**
- * Einzige Quelle der Wahrheit für die Kartenprojektion: `ComposableMap`
- * bekommt exakt dieselbe `projectionConfig`/Größe, damit die unabhängig
- * (außerhalb von react-simple-maps) berechnete Projektion hier — für die
- * Bounding-Box-/Zoom-Berechnung in `MapView` — pixelgenau mit der intern
- * von react-simple-maps genutzten Projektion übereinstimmt.
+ * Single source of truth for the map projection: `ComposableMap` gets
+ * the exact same `projectionConfig`/size, so the projection computed here
+ * independently (outside react-simple-maps) — used for the bounding-box/
+ * zoom calculation in `MapView` — matches react-simple-maps' internal
+ * projection pixel-for-pixel.
  */
 export const MAP_WIDTH = 800;
 export const MAP_HEIGHT = 600;

@@ -15,14 +15,14 @@ const MIN_INTERMEDIATE_STEPS = 4;
 const MAX_INTERMEDIATE_STEPS = 8;
 
 // ---------------------------------------------------------------------
-// Namens-Normalisierung / Alias-Auflösung
+// Name normalization / alias resolution
 // ---------------------------------------------------------------------
 
 /**
- * Normalisiert einen Ländernamen für tolerante Vergleiche: Groß-/
- * Kleinschreibung, Umlaute/Akzente sowie Satzzeichen spielen keine Rolle
- * mehr. Wird sowohl von `resolveCountryName` als auch von der
- * Autocomplete-Suche im UI genutzt, damit beide konsistent matchen.
+ * Normalizes a country name for tolerant comparisons: casing, accents/
+ * umlauts, and punctuation no longer matter. Used by both
+ * `resolveCountryName` and the UI's autocomplete search so both match
+ * consistently.
  */
 export function normalize(input: string): string {
   return input
@@ -30,7 +30,7 @@ export function normalize(input: string): string {
     .toLowerCase()
     .replace(/ß/g, "ss")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Umlaute/Akzente entfernen (nach NFD-Zerlegung)
+    .replace(/[\u0300-\u036f]/g, "") // strip accents/umlauts (after NFD decomposition)
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
@@ -44,11 +44,10 @@ for (const [alias, canonicalName] of Object.entries(countryAliases)) {
 }
 
 /**
- * Löst eine (möglicherweise ungenau geschriebene) Länder-Eingabe auf den
- * kanonischen Ländernamen aus `countryAdjacency` auf. Ignoriert dabei
- * Groß-/Kleinschreibung, Umlaute/Akzente und erkennt gängige Aliase
- * (z.B. "USA", "Großbritannien"). Gibt `undefined` zurück, wenn der Name
- * nicht erkannt wird.
+ * Resolves a (possibly imprecisely typed) country input to the canonical
+ * country name used in `countryAdjacency`. Ignores casing and accents/
+ * umlauts, and recognizes common aliases (e.g. "USA", "Great Britain").
+ * Returns `undefined` if the name isn't recognized.
  */
 export function resolveCountryName(input: string): string | undefined {
   return normalizedNameToCanonical.get(normalize(input));
@@ -61,17 +60,23 @@ function getLastCorrectCountry(state: GameState): string {
 }
 
 // ---------------------------------------------------------------------
-// Kern-Spiellogik
+// Core game logic
 // ---------------------------------------------------------------------
 
 /**
- * Verarbeitet einen Rateversuch. Ein Versuch ist korrekt, wenn er sich zu
- * einem bekannten Land auflösen lässt UND ein direkter Landnachbar des
- * zuletzt korrekt geratenen Landes ist (der Start zählt dabei als erstes
- * korrektes Land). Ein korrekter Versuch, der seinerseits an das Zielland
- * grenzt (oder das Zielland selbst ist), gewinnt das Spiel.
+ * Processes a guess. A guess is correct if it resolves to a known country
+ * AND is a direct land-border neighbor of the last correctly guessed
+ * country (the start counts as the first correct country) — this is
+ * checked purely against the real adjacency graph (`countryAdjacency`),
+ * regardless of whether the guess happens to lie on `state.optimalPath`.
+ * `optimalPath` is never consulted here; the player is free to take any
+ * valid (possibly longer) chain of real neighbors to the target — it's
+ * only used afterwards, for comparison, once the round is won.
  *
- * Ist das Spiel bereits gewonnen, wird der State unverändert zurückgegeben.
+ * A correct guess that itself borders the target country (or is the
+ * target itself) wins the game.
+ *
+ * If the game is already won, the state is returned unchanged.
  */
 export function submitGuess(state: GameState, guess: string): GameState {
   if (state.isWon) {
@@ -105,17 +110,17 @@ export function submitGuess(state: GameState, guess: string): GameState {
 }
 
 /**
- * Gibt an, wie viele Länder im REFERENZ-Optimalpfad (`state.optimalPath`)
- * zwischen dem zuletzt korrekt geratenen Land und `guess` liegen, falls
- * `guess` weiter vorne im Pfad liegt als der unmittelbar nächste Schritt.
+ * Reports how many countries in the REFERENCE optimal path
+ * (`state.optimalPath`) lie between the last correctly guessed country
+ * and `guess`, if `guess` sits further ahead in that path than the
+ * immediate next step.
  *
- * Arbeitet rein über die Positionen in `optimalPath` (nicht über eine
- * erneute Graph-Traversierung) und prüft NICHT, ob `guess` tatsächlich
- * ein gültiger Nachbar ist — das übernimmt `submitGuess`. Ist eines der
- * beiden Länder nicht Teil von `optimalPath` (z.B. weil der Spieler über
- * eine alternative, nicht im Referenzpfad enthaltene Route gelaufen ist),
- * wird 0 zurückgegeben, da sich ein Überspringen dann nicht sinnvoll
- * gegenüber diesem Referenzpfad bestimmen lässt.
+ * Works purely off positions within `optimalPath` (not a fresh graph
+ * traversal) and does NOT check whether `guess` is actually a valid
+ * neighbor — `submitGuess` already handles that. If either country isn't
+ * part of `optimalPath` (e.g. because the player took an alternate route
+ * not covered by this reference path), this returns 0, since "skipped"
+ * isn't meaningfully defined against that reference path in that case.
  */
 export function getSkippedCount(state: GameState, guess: string): number {
   const resolved = resolveCountryName(guess) ?? guess;
@@ -132,11 +137,10 @@ export function getSkippedCount(state: GameState, guess: string): number {
 }
 
 /**
- * Berechnet für jeden bisherigen korrekten Versuch, wie viele Länder dabei
- * jeweils übersprungen wurden (siehe {@link getSkippedCount}). Wird sowohl
- * für die Anzeige je Zeile (`GuessList`) als auch für das Emoji-Grid im
- * Teilen-Ergebnis (`ResultSummary`) genutzt, damit beide dieselbe Logik
- * verwenden.
+ * Computes, for each guess made so far, how many countries were skipped
+ * (see {@link getSkippedCount}). Used both for the per-row display
+ * (`GuessList`) and for the emoji grid in the share result
+ * (`ResultSummary`), so both use the exact same logic.
  */
 export function computeSkipCounts(state: GameState): number[] {
   return state.correctGuesses.map((guess, index) => {
@@ -149,50 +153,31 @@ export function computeSkipCounts(state: GameState): number[] {
 }
 
 // ---------------------------------------------------------------------
-// Deterministisches Tagesrätsel
+// Random puzzle generation
 // ---------------------------------------------------------------------
 
-function hashSeed(seed: string): number {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (Math.imul(hash, 31) + seed.charCodeAt(i)) | 0;
-  }
-  return hash >>> 0;
-}
-
-/** Deterministischer PRNG (mulberry32), liefert Zahlen in [0, 1). */
-function mulberry32(seed: number): () => number {
-  let state = seed;
-  return function next() {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 /**
- * Wählt deterministisch (basierend auf `seed`, z.B. dem heutigen Datum)
- * ein Länderpaar aus, dessen kürzester Landweg zwischen
- * {@link MIN_INTERMEDIATE_STEPS} und {@link MAX_INTERMEDIATE_STEPS}
- * Zwischenländer hat (also `optimalPath.length - 2`, ohne Start und Ziel
- * selbst zu zählen).
+ * Picks a random country pair whose shortest land route has between
+ * {@link MIN_INTERMEDIATE_STEPS} and {@link MAX_INTERMEDIATE_STEPS}
+ * intermediate countries (i.e. `optimalPath.length - 2`, not counting the
+ * start and target themselves). Called fresh on every "Play"/"Play
+ * again" click — there is no daily seed, every round is a new random
+ * pair.
  */
-export function generateDailyPuzzle(seed: string): { start: string; end: string } {
-  const countries = Object.keys(countryAdjacency).sort();
-  const rng = mulberry32(hashSeed(seed));
+export function generateRandomPuzzle(): { start: string; end: string } {
+  const countries = Object.keys(countryAdjacency);
   const n = countries.length;
   const maxAttempts = n * n;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const startIndex = Math.floor(rng() * n);
-    const endIndex = Math.floor(rng() * n);
+    const startIndex = Math.floor(Math.random() * n);
+    const endIndex = Math.floor(Math.random() * n);
     if (startIndex === endIndex) continue;
 
     const start = countries[startIndex];
     const end = countries[endIndex];
     const path = findShortestPath(start, end);
-    if (path.length === 0) continue; // keine Landverbindung (z.B. Inseln)
+    if (path.length === 0) continue; // no land connection (e.g. islands)
 
     const intermediateSteps = path.length - 2;
     if (
@@ -203,5 +188,5 @@ export function generateDailyPuzzle(seed: string): { start: string; end: string 
     }
   }
 
-  throw new Error(`Konnte für Seed "${seed}" kein passendes Länderpaar finden`);
+  throw new Error("Could not find a suitable country pair for a new puzzle");
 }

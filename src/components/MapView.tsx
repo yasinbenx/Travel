@@ -14,9 +14,9 @@ import styles from "./MapView.module.css";
 const worldTopology = rawWorldTopology as unknown as GeoJsonObject;
 
 type MapViewProps = {
-  /** Startland + bisher korrekt geratene Länder, in Reihenfolge. */
+  /** Start country + correctly guessed countries so far, in order. */
   revealedCountries: string[];
-  /** Zielland — bleibt bis zum Sieg unsichtbar (siehe Kommentar unten). */
+  /** Target country — stays hidden until the win (see comment below). */
   target: string;
   isWon: boolean;
 };
@@ -29,21 +29,21 @@ const COLORS = {
 };
 
 /**
- * SVG-Weltkarte im "Pfad-Reveal"-Stil: NUR das Startland und die bisher
- * korrekt geratenen Länder werden überhaupt gerendert (Umriss + Füllung).
- * Alle anderen Länder werden komplett aus dem Geographien-Array gefiltert
- * — nicht nur unauffällig eingefärbt — damit ihre Umrisse keinerlei
- * Hinweis auf Lage oder Form des Ziellandes geben können. Der Hintergrund
- * ist eine einfarbige, neutrale Fläche ohne jede Kontur.
+ * SVG world map in a "path reveal" style: ONLY the start country and the
+ * countries correctly guessed so far are rendered at all (outline + fill).
+ * Every other country is filtered out of the geographies array entirely
+ * — not just subtly colored — so its outline can't give away the target's
+ * location or shape. The background is a plain, neutral fill with no
+ * outlines at all.
  *
- * Das Zielland bleibt bis zum Sieg absichtlich unmarkiert: im echten
- * travle.earth ist die Kontur des Ziellandes ebenfalls standardmäßig
- * verborgen und nur über einen optionalen, aktiv anzufordernden Hinweis
- * ("Show next/all country outline") einsehbar — es gibt dort keinen
- * automatischen Zielland-Marker. Das wird hier bewusst genauso gehandhabt.
+ * The target country deliberately stays unmarked until the win: in the
+ * real travle.earth, the target's outline is likewise hidden by default
+ * and only revealed through an optional, actively-requested hint ("Show
+ * next/all country outline") — there's no automatic target marker there
+ * either. This is handled the same way here on purpose.
  *
- * Die Ansicht zoomt/zentriert sich automatisch auf die Bounding Box aller
- * aufgedeckten Länder (`computeMapView`, via `ZoomableGroup` gesteuert).
+ * The view automatically zooms/centers on the bounding box of all
+ * revealed countries (`computeMapView`, driven via `ZoomableGroup`).
  */
 export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
   const revealedSet = useMemo(() => new Set(revealedCountries), [revealedCountries]);
@@ -72,9 +72,9 @@ export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
           zoom={view.zoom}
           minZoom={1}
           maxZoom={12}
-          // Der Zoom wird ausschließlich automatisch anhand des Spielfortschritts
-          // gesteuert (kein manuelles Verschieben/Zoomen per Maus/Touch), damit
-          // die Kartenansicht auf Mobilgeräten nicht mit dem Seiten-Scrollen kollidiert.
+          // Zoom is driven entirely automatically by game progress (no
+          // manual pan/zoom via mouse/touch), so the map view doesn't fight
+          // page scrolling on mobile devices.
           filterZoomEvent={() => false}
           className={styles.zoomGroup}
         >

@@ -12,16 +12,15 @@ type GameBoardProps = {
 };
 
 /**
- * Kartenzentrierte Spielansicht: die Weltkarte nimmt den Großteil des
- * Bildschirms ein und deckt Land für Land den gefundenen Pfad auf. Start/
- * Ziel stehen als schlanke Kopfzeile darüber, der Fortschritt und die
- * falschen Versuche liegen als kleine, unauffällige Overlays auf der
- * Karte, die Eingabe ist unten fest angedockt.
+ * Map-centric game view: the world map takes up most of the screen and
+ * reveals the found path country by country. Start/target sit in a slim
+ * header above it, progress and wrong guesses float as small, unobtrusive
+ * overlays on the map, and the input is docked at the bottom.
  *
- * Reiner Anzeige-/Eingabe-Container: hält keinen eigenen State — Laden,
- * Speichern und der Wechsel zum Ergebnis-Screen bei Sieg übernimmt
- * `AppShell`, die diese Komponente nur solange rendert, wie die Runde
- * noch läuft.
+ * A plain display/input container: holds no state of its own — loading,
+ * saving, and switching to the result screen on a win are all handled by
+ * `AppShell`, which only renders this component while the round is still
+ * in progress.
  */
 export function GameBoard({ state, onGuess }: GameBoardProps) {
   const intermediateStepsInOptimalPath = state.optimalPath.length - 2;
@@ -42,7 +41,7 @@ export function GameBoard({ state, onGuess }: GameBoardProps) {
         <div className={`${styles.overlay} ${styles.progressOverlay}`}>
           <p className={styles.progressText}>
             {state.correctGuesses.length}{" "}
-            {state.correctGuesses.length === 1 ? "Land" : "Länder"} · optimal:{" "}
+            {state.correctGuesses.length === 1 ? "country" : "countries"} · optimal:{" "}
             {intermediateStepsInOptimalPath}
           </p>
           <GuessList state={state} compact />

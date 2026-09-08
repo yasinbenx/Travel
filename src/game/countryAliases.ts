@@ -1,16 +1,19 @@
 /**
- * Gängige Aliase/Alternativnamen für Länder, die auf die kanonischen
- * Schlüssel aus `countryAdjacency` abgebildet werden. Wird von
- * `resolveCountryName` zusammen mit einer Groß-/Kleinschreibungs- und
- * Umlaut-toleranten Normalisierung genutzt, damit Spieler nicht exakt
- * den in den Daten verwendeten englischen Namen treffen müssen.
+ * Common aliases/alternative names for countries, mapped onto the
+ * canonical keys from `countryAdjacency`. Used by `resolveCountryName`
+ * together with case- and accent-tolerant normalization, so players
+ * don't have to hit the exact English name used in the data.
  *
- * Die Keys hier müssen NICHT vor-normalisiert werden (kein Lowercase,
- * keine entfernten Umlaute) — `resolveCountryName` normalisiert sowohl
- * die Eingabe als auch diese Aliase auf die gleiche Weise.
+ * Keys here do NOT need to be pre-normalized (no lowercasing, no
+ * stripped accents) — `resolveCountryName` normalizes both the input and
+ * these aliases the same way.
+ *
+ * The German names below are kept deliberately: even in an English UI, a
+ * player may instinctively type a country's name in their own language,
+ * and there's no reason not to accept that too.
  */
 export const countryAliases: Record<string, string> = {
-  // Englische Kurz-/Alternativnamen
+  // English short/alternative names
   USA: "United States",
   US: "United States",
   "United States of America": "United States",
@@ -34,7 +37,7 @@ export const countryAliases: Record<string, string> = {
   Vatican: "Vatican City",
   "Holy See": "Vatican City",
 
-  // Gängige deutsche Ländernamen
+  // Common German country names
   "Vereinigte Staaten": "United States",
   "Vereinigte Staaten von Amerika": "United States",
   Großbritannien: "United Kingdom",

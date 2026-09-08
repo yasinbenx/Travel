@@ -9,13 +9,13 @@ import { MAP_HEIGHT, MAP_WIDTH, createMapPath, createMapProjection } from "./map
 const worldTopology = rawWorldTopology as unknown as Topology;
 const countriesObject = worldTopology.objects.countries as GeometryCollection;
 
-/** Alle Länder-Features (einmalig aus dem TopoJSON extrahiert). */
+/** All country features (extracted from the TopoJSON once). */
 export const countryFeatures: Feature<Geometry>[] = feature(
   worldTopology,
   countriesObject,
 ).features;
 
-/** Kanonischer Ländername -> GeoJSON-Feature, für schnellen Bounds-Lookup. */
+/** Canonical country name -> GeoJSON feature, for fast bounds lookups. */
 const featureByCanonicalName = new Map<string, Feature<Geometry>>();
 for (const geoFeature of countryFeatures) {
   const rawName = String(geoFeature.properties?.name ?? "");
@@ -30,7 +30,7 @@ export type MapView = {
 const DEFAULT_VIEW: MapView = { center: [10, 20], zoom: 1 };
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 12;
-/** Anteil der Kartenfläche, den die Bounding Box der aufgedeckten Länder einnehmen soll. */
+/** Share of the map area the revealed countries' bounding box should occupy. */
 const PADDING_FACTOR = 0.6;
 
 function clamp(value: number, min: number, max: number): number {
@@ -44,15 +44,14 @@ function isFiniteBounds(bounds: Bounds): boolean {
 }
 
 /**
- * Liefert die Bounding Box des flächenmäßig GRÖSSTEN Teilstücks eines
- * Länder-Features. Mehrere unserer Quelldaten bündeln weit entfernte
- * Überseegebiete als zusätzliche Polygone in dieselbe MultiPolygon-Geometrie
- * (z.B. enthält Frankreichs Geometrie in diesem Datensatz auch
- * Französisch-Guayana in Südamerika). Würde man die gesamte MultiPolygon-
- * Bounding-Box verwenden, würde allein das Aufdecken Frankreichs die
- * Zoom-Ansicht auf den halben Atlantik aufspannen. Das "Hauptland" (die
- * größte zusammenhängende Fläche) ist für die Zoom-Berechnung die weitaus
- * sinnvollere Referenz.
+ * Returns the bounding box of the LARGEST (by area) sub-piece of a
+ * country's feature. Several of our source geometries bundle far-flung
+ * overseas territories as extra polygons into the same MultiPolygon (e.g.
+ * France's geometry in this dataset also includes French Guiana in South
+ * America). Using the whole MultiPolygon's bounding box would make just
+ * revealing France stretch the zoom view across half the Atlantic. The
+ * "mainland" (the single largest contiguous area) is by far the more
+ * sensible reference for the zoom calculation.
  */
 function getPrimaryBounds(path: GeoPath, geoFeature: Feature<Geometry>): Bounds | null {
   if (geoFeature.geometry.type !== "MultiPolygon") {
@@ -83,12 +82,11 @@ function getPrimaryBounds(path: GeoPath, geoFeature: Feature<Geometry>): Bounds 
 }
 
 /**
- * Berechnet Zentrum (Länge/Breite) und Zoomstufe, um die Bounding Box
- * aller genannten Länder (per kanonischem Namen) gut sichtbar in der
- * Karte darzustellen. Länder ohne eigene Geometrie in diesem Datensatz
- * (z.B. Französisch-Guayana, Tuvalu — siehe `mapCountryNames.ts`) werden
- * dabei einfach übersprungen. Gibt eine Standardansicht der ganzen Welt
- * zurück, wenn keines der Länder eine Geometrie hat.
+ * Computes a center (longitude/latitude) and zoom level to display the
+ * bounding box of all named countries (by canonical name) nicely on the
+ * map. Countries with no geometry in this dataset (e.g. French Guiana,
+ * Tuvalu — see `mapCountryNames.ts`) are simply skipped. Returns a
+ * default whole-world view if none of the countries have a geometry.
  */
 export function computeMapView(countryNames: string[]): MapView {
   const path = createMapPath();

@@ -3,16 +3,16 @@ import styles from "./GuessList.module.css";
 
 type GuessListProps = {
   state: GameState;
-  /** Kompakte Chip-Darstellung für die kleine Übersicht neben/über der Karte. */
+  /** Compact chip display for the small overview next to/over the map. */
   compact?: boolean;
 };
 
 /**
- * Zeigt die bisher korrekt geratenen Zwischenländer. In der normalen
- * Darstellung als grün hervorgehobene Zeilen, in der kompakten Variante
- * als platzsparende Chips. Liegt ein Guess laut Referenzpfad weiter vorne
- * als der unmittelbar nächste Schritt, wird zusätzlich angezeigt, wie
- * viele Länder dabei übersprungen wurden.
+ * Shows the intermediate countries guessed correctly so far. In the
+ * normal view as green highlighted rows, in the compact variant as
+ * space-saving chips. If a guess sits further ahead in the reference
+ * path than the immediate next step, it also shows how many countries
+ * were skipped.
  */
 export function GuessList({ state, compact = false }: GuessListProps) {
   const { correctGuesses } = state;
@@ -20,7 +20,7 @@ export function GuessList({ state, compact = false }: GuessListProps) {
   if (correctGuesses.length === 0) {
     return (
       <div className={compact ? styles.emptyCompact : styles.empty}>
-        Noch keine Länder erraten.
+        No countries guessed yet.
       </div>
     );
   }
@@ -48,7 +48,7 @@ export function GuessList({ state, compact = false }: GuessListProps) {
         <li key={`${country}-${index}`} className={styles.row}>
           <span className={styles.country}>{country}</span>
           {skipCounts[index] > 0 && (
-            <span className={styles.skipped}>{skipCounts[index]} Länder übersprungen</span>
+            <span className={styles.skipped}>{skipCounts[index]} countries skipped</span>
           )}
         </li>
       ))}

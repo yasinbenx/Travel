@@ -6,8 +6,8 @@ type WrongGuessesPanelProps = {
 };
 
 /**
- * Eingeklappte Liste der falschen Rateversuche. Der Kopfbereich zeigt
- * immer die Anzahl an; ein Klick klappt die Liste der Länder auf/zu.
+ * Collapsed list of wrong guesses. The header always shows the count;
+ * clicking it expands/collapses the list of countries.
  */
 export function WrongGuessesPanel({ wrongGuesses }: WrongGuessesPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +23,7 @@ export function WrongGuessesPanel({ wrongGuesses }: WrongGuessesPanelProps) {
         aria-expanded={isOpen && hasEntries}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span>{count} falsche{count === 1 ? "r Versuch" : " Versuche"}</span>
+        <span>{count} wrong {count === 1 ? "guess" : "guesses"}</span>
         {hasEntries && (
           <span
             className={isOpen ? `${styles.chevron} ${styles.chevronOpen}` : styles.chevron}

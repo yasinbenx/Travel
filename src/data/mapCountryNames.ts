@@ -1,18 +1,18 @@
 /**
- * Bildet die (teils abgekürzten) Ländernamen aus dem `world-atlas`
- * TopoJSON (Natural-Earth-Daten, `properties.name`) auf die kanonischen
- * Namen aus `countryAdjacency` ab. Nur Einträge, die sich unterscheiden,
- * müssen hier aufgeführt werden — ansonsten wird der TopoJSON-Name
- * unverändert als kanonischer Name angenommen.
+ * Maps the (partly abbreviated) country names from the `world-atlas`
+ * TopoJSON (Natural Earth data, `properties.name`) onto the canonical
+ * names used in `countryAdjacency`. Only entries that actually differ
+ * need to be listed here — otherwise the TopoJSON name is used unchanged
+ * as the canonical name.
  *
- * Bekannte Lücken (bewusst nicht abgebildet, da im 50m-TopoJSON nicht
- * als eigene Geometrie vorhanden bzw. nicht Teil unserer Länderliste):
- * - Französisch-Guayana ist im TopoJSON Teil der Geometrie von
- *   Frankreich (keine eigene Landmasse in diesem Datensatz).
- * - Tuvalu ist bei dieser Auflösung schlicht nicht enthalten (zu klein).
- * - Gebiete wie "N. Cyprus" oder "Somaliland" sind keine eigenständigen
- *   Länder in unserer Adjazenzliste und bleiben daher unangetastet
- *   (werden auf der Karte einfach nicht eingefärbt).
+ * Known gaps (deliberately unmapped, since they have no distinct geometry
+ * in this 50m TopoJSON or aren't part of our country list):
+ * - French Guiana is, in this TopoJSON, part of France's geometry (no
+ *   separate landmass in this dataset).
+ * - Tuvalu simply isn't included at this resolution (too small).
+ * - Territories like "N. Cyprus" or "Somaliland" aren't independent
+ *   countries in our adjacency list and are therefore left untouched
+ *   (they just won't be colored on the map).
  */
 export const mapCountryNames: Record<string, string> = {
   "Antigua and Barb.": "Antigua and Barbuda",
@@ -38,7 +38,7 @@ export const mapCountryNames: Record<string, string> = {
   eSwatini: "Eswatini",
 };
 
-/** Löst einen TopoJSON-Ländernamen auf den kanonischen Namen auf. */
+/** Resolves a TopoJSON country name to its canonical name. */
 export function resolveMapCountryName(topoName: string): string {
   return mapCountryNames[topoName] ?? topoName;
 }

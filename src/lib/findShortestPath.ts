@@ -1,20 +1,20 @@
 import { countryAdjacency } from "../data/countryAdjacency";
 
 /**
- * Findet den kürzesten Weg zwischen zwei Ländern über gemeinsame
- * Landgrenzen mittels Breitensuche (BFS) auf der Adjazenzliste.
+ * Finds the shortest path between two countries via shared land borders,
+ * using breadth-first search (BFS) over the adjacency list.
  *
- * @returns Array der Länder auf dem Weg (inklusive Start und Ziel).
- *          Leeres Array, wenn kein Weg existiert (z.B. Inselstaaten
- *          ohne Landverbindung).
- * @throws Error, wenn `start` oder `end` kein bekanntes Land ist.
+ * @returns Array of countries on the path (including start and end).
+ *          Empty array if no path exists (e.g. island states with no
+ *          land connection).
+ * @throws Error if `start` or `end` isn't a known country.
  */
 export function findShortestPath(start: string, end: string): string[] {
   if (!(start in countryAdjacency)) {
-    throw new Error(`Unbekanntes Land: "${start}"`);
+    throw new Error(`Unknown country: "${start}"`);
   }
   if (!(end in countryAdjacency)) {
-    throw new Error(`Unbekanntes Land: "${end}"`);
+    throw new Error(`Unknown country: "${end}"`);
   }
 
   if (start === end) {
@@ -55,7 +55,7 @@ function reconstructPath(
   while (node !== start) {
     const prev = parent.get(node);
     if (prev === undefined) {
-      throw new Error(`Konnte Pfad nicht rekonstruieren bei "${node}"`);
+      throw new Error(`Could not reconstruct path at "${node}"`);
     }
     path.push(prev);
     node = prev;

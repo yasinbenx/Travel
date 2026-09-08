@@ -5,14 +5,14 @@ const SKIPPED_EMOJI = "🟨";
 const WRONG_EMOJI = "⬜";
 
 /**
- * Baut das Wordle-artige Emoji-Grid für ein gewonnenes Spiel: ein Feld pro
- * korrektem Versuch (grün = direkter nächster Schritt, gelb = dabei wurden
- * Länder übersprungen), gefolgt von einem grauen Feld pro falschem Versuch.
+ * Builds the Wordle-style emoji grid for a won game: one tile per correct
+ * guess (green = direct next step, yellow = countries were skipped),
+ * followed by one gray tile per wrong guess.
  *
- * Hinweis: `GameState` speichert korrekte und falsche Versuche in
- * getrennten Arrays (keine gemeinsame Zeitreihenfolge), daher werden die
- * grauen Felder für falsche Versuche hier angehängt statt chronologisch
- * zwischen die grün/gelben Felder gemischt.
+ * Note: `GameState` stores correct and wrong guesses in separate arrays
+ * (no shared chronological order), so the gray tiles for wrong guesses
+ * are appended here rather than interleaved chronologically with the
+ * green/yellow tiles.
  */
 export function buildEmojiGrid(state: GameState): string {
   const skipCounts = computeSkipCounts(state);
@@ -23,21 +23,17 @@ export function buildEmojiGrid(state: GameState): string {
   return [...correctSquares, ...wrongSquares].join("");
 }
 
-/** Baut den vollständigen, in die Zwischenablage kopierbaren Ergebnistext. */
+/** Builds the full result text that gets copied to the clipboard. */
 export function buildShareText(state: GameState): string {
   const steps = state.correctGuesses.length;
   const optimalSteps = state.optimalPath.length - 2;
   const wrongCount = state.wrongGuesses.length;
 
   const statsLine =
-    `${steps} ${steps === 1 ? "Schritt" : "Schritte"} · optimal: ${optimalSteps}` +
-    (wrongCount > 0
-      ? ` · ${wrongCount} falsche${wrongCount === 1 ? "r Versuch" : " Versuche"}`
-      : "");
+    `${steps} ${steps === 1 ? "step" : "steps"} · optimal: ${optimalSteps}` +
+    (wrongCount > 0 ? ` · ${wrongCount} wrong ${wrongCount === 1 ? "guess" : "guesses"}` : "");
 
-  return [
-    `Travle-Klon – ${state.start} → ${state.end}`,
-    statsLine,
-    buildEmojiGrid(state),
-  ].join("\n");
+  return [`BorderHop – ${state.start} → ${state.end}`, statsLine, buildEmojiGrid(state)].join(
+    "\n",
+  );
 }
