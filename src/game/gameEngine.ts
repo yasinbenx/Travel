@@ -131,6 +131,23 @@ export function getSkippedCount(state: GameState, guess: string): number {
   return Math.max(0, guessIndex - lastIndex - 1);
 }
 
+/**
+ * Berechnet für jeden bisherigen korrekten Versuch, wie viele Länder dabei
+ * jeweils übersprungen wurden (siehe {@link getSkippedCount}). Wird sowohl
+ * für die Anzeige je Zeile (`GuessList`) als auch für das Emoji-Grid im
+ * Teilen-Ergebnis (`ResultSummary`) genutzt, damit beide dieselbe Logik
+ * verwenden.
+ */
+export function computeSkipCounts(state: GameState): number[] {
+  return state.correctGuesses.map((guess, index) => {
+    const stateBeforeThisGuess: GameState = {
+      ...state,
+      correctGuesses: state.correctGuesses.slice(0, index),
+    };
+    return getSkippedCount(stateBeforeThisGuess, guess);
+  });
+}
+
 // ---------------------------------------------------------------------
 // Deterministisches Tagesrätsel
 // ---------------------------------------------------------------------

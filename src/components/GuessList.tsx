@@ -1,4 +1,4 @@
-import { getSkippedCount, type GameState } from "../game/gameEngine";
+import { computeSkipCounts, type GameState } from "../game/gameEngine";
 import styles from "./GuessList.module.css";
 
 type GuessListProps = {
@@ -18,24 +18,18 @@ export function GuessList({ state }: GuessListProps) {
     return <div className={styles.empty}>Noch keine Länder erraten.</div>;
   }
 
+  const skipCounts = computeSkipCounts(state);
+
   return (
     <ul className={styles.list}>
-      {correctGuesses.map((country, index) => {
-        const stateBeforeThisGuess: GameState = {
-          ...state,
-          correctGuesses: correctGuesses.slice(0, index),
-        };
-        const skipped = getSkippedCount(stateBeforeThisGuess, country);
-
-        return (
-          <li key={`${country}-${index}`} className={styles.row}>
-            <span className={styles.country}>{country}</span>
-            {skipped > 0 && (
-              <span className={styles.skipped}>{skipped} Länder übersprungen</span>
-            )}
-          </li>
-        );
-      })}
+      {correctGuesses.map((country, index) => (
+        <li key={`${country}-${index}`} className={styles.row}>
+          <span className={styles.country}>{country}</span>
+          {skipCounts[index] > 0 && (
+            <span className={styles.skipped}>{skipCounts[index]} Länder übersprungen</span>
+          )}
+        </li>
+      ))}
     </ul>
   );
 }

@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { findShortestPath } from "../lib/findShortestPath";
 import { generateDailyPuzzle, submitGuess, type GameState } from "../game/gameEngine";
+import { loadGameState, saveGameState } from "../game/persistence";
 import { GuessInput } from "./GuessInput";
 import { GuessList } from "./GuessList";
+import { MapView } from "./MapView";
+import { ResultSummary } from "./ResultSummary";
 import { StartEndBox } from "./StartEndBox";
 import { WrongGuessesPanel } from "./WrongGuessesPanel";
 import styles from "./GameBoard.module.css";
@@ -15,8 +18,8 @@ function getTodaySeed(): string {
   return `${year}-${month}-${day}`;
 }
 
-function createInitialGameState(): GameState {
-  const { start, end } = generateDailyPuzzle(getTodaySeed());
+function createFreshGameState(seed: string): GameState {
+  const { start, end } = generateDailyPuzzle(seed);
   const optimalPath = findShortestPath(start, end);
   return {
     start,
@@ -28,13 +31,25 @@ function createInitialGameState(): GameState {
   };
 }
 
+function loadOrCreateGameState(): GameState {
+  const seed = getTodaySeed();
+  return loadGameState(seed) ?? createFreshGameState(seed);
+}
+
 /**
  * Verbindet Spielzustand und Teil-Komponenten zum vollständigen Tagesrätsel:
- * Start/Ziel oben, Eingabe darunter, die geratene Länderkette in der Mitte
- * und die falschen Versuche eingeklappt am Fuß.
+ * Start/Ziel oben, Eingabe darunter, Ergebnis-Zusammenfassung bei Sieg,
+ * die geratene Länderkette und Weltkarte in der Mitte, falsche Versuche
+ * eingeklappt am Fuß. Der Fortschritt wird unter einem auf das heutige
+ * Datum bezogenen Key im localStorage gesichert, sodass ein Reload ihn
+ * nicht verliert, ein neuer Tag aber automatisch ein neues Rätsel startet.
  */
 export function GameBoard() {
-  const [gameState, setGameState] = useState<GameState>(createInitialGameState);
+  const [gameState, setGameState] = useState<GameState>(loadOrCreateGameState);
+
+  useEffect(() => {
+    saveGameState(getTodaySeed(), gameState);
+  }, [gameState]);
 
   function handleGuess(guess: string) {
     setGameState((prev) => submitGuess(prev, guess));
@@ -58,12 +73,7 @@ export function GameBoard() {
         excludeNames={excludeNames}
       />
 
-      {gameState.isWon && (
-        <div className={styles.banner} role="status">
-          🎉 Geschafft! {gameState.correctGuesses.length} Länder von {gameState.start} bis{" "}
-          {gameState.end}.
-        </div>
-      )}
+      <ResultSummary state={gameState} />
 
       <p className={styles.progress}>
         {gameState.correctGuesses.length}{" "}
@@ -72,6 +82,12 @@ export function GameBoard() {
       </p>
 
       <GuessList state={gameState} />
+
+      <MapView
+        start={gameState.start}
+        end={gameState.end}
+        correctGuesses={gameState.correctGuesses}
+      />
 
       <WrongGuessesPanel wrongGuesses={gameState.wrongGuesses} />
     </div>

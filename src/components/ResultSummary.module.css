@@ -1,0 +1,53 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: 10px;
+  background: var(--correct-bg);
+  border: 1px solid var(--correct-border);
+  text-align: center;
+}
+
+.heading {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--correct-text);
+}
+
+.stats {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.grid {
+  margin: 0.15rem 0;
+  font-size: 1.4rem;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  word-break: break-all;
+}
+
+.shareButton {
+  margin-top: 0.25rem;
+  padding: 0.55rem 1.1rem;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.shareButton:hover {
+  opacity: 0.9;
+}
+
+.shareButton:active {
+  opacity: 0.8;
+}
