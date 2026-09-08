@@ -16,6 +16,8 @@
   --wrong-border: #e2d6d6;
   --wrong-text: #8a4a4a;
 
+  --map-bg: #eef1ef;
+
   --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   font-family: var(--sans);

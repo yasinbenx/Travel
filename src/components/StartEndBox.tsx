@@ -3,13 +3,27 @@ import styles from "./StartEndBox.module.css";
 type StartEndBoxProps = {
   start: string;
   end: string;
+  /** Schlanke Einzeilen-Variante für die Kopfleiste über der Karte. */
+  compact?: boolean;
 };
 
 /**
  * Zeigt Start- und Zielland fest und eingerahmt an. Beide Länder stehen
  * für die Dauer der Runde fest und sind hier nicht veränderbar.
  */
-export function StartEndBox({ start, end }: StartEndBoxProps) {
+export function StartEndBox({ start, end, compact = false }: StartEndBoxProps) {
+  if (compact) {
+    return (
+      <div className={styles.compactWrapper}>
+        <span className={styles.compactCountry}>{start}</span>
+        <span className={styles.arrow} aria-hidden="true">
+          &rarr;
+        </span>
+        <span className={styles.compactCountry}>{end}</span>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.wrapper}>
       <div className={`${styles.box} ${styles.start}`}>

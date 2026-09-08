@@ -44,6 +44,46 @@
   white-space: nowrap;
 }
 
+.emptyCompact {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.chipList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: 6.5rem;
+  overflow-y: auto;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--correct-text);
+  background: var(--correct-bg);
+  border: 1px solid var(--correct-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  white-space: nowrap;
+  animation: appear 0.2s ease;
+}
+
+.chipSkip {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--correct-text);
+  background: var(--correct-badge-bg);
+  border-radius: 999px;
+  padding: 0 0.35rem;
+}
+
 @keyframes appear {
   from {
     opacity: 0;

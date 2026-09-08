@@ -37,12 +37,12 @@ function loadOrCreateGameState(): GameState {
 }
 
 /**
- * Verbindet Spielzustand und Teil-Komponenten zum vollständigen Tagesrätsel:
- * Start/Ziel oben, Eingabe darunter, Ergebnis-Zusammenfassung bei Sieg,
- * die geratene Länderkette und Weltkarte in der Mitte, falsche Versuche
- * eingeklappt am Fuß. Der Fortschritt wird unter einem auf das heutige
- * Datum bezogenen Key im localStorage gesichert, sodass ein Reload ihn
- * nicht verliert, ein neuer Tag aber automatisch ein neues Rätsel startet.
+ * Kartenzentrierte Ansicht: die Weltkarte nimmt den Großteil des
+ * Bildschirms ein und deckt Land für Land den gefundenen Pfad auf. Start/
+ * Ziel stehen als schlanke Kopfzeile darüber, der Fortschritt und die
+ * falschen Versuche liegen als kleine, unauffällige Overlays auf der
+ * Karte, die Eingabe ist unten fest angedockt. Der Fortschritt wird unter
+ * einem auf das heutige Datum bezogenen Key im localStorage gesichert.
  */
 export function GameBoard() {
   const [gameState, setGameState] = useState<GameState>(loadOrCreateGameState);
@@ -57,39 +57,49 @@ export function GameBoard() {
 
   const intermediateStepsInOptimalPath = gameState.optimalPath.length - 2;
   const excludeNames = [gameState.start, ...gameState.correctGuesses];
+  const revealedCountries = [gameState.start, ...gameState.correctGuesses];
 
   return (
-    <div className={styles.board}>
-      <h1 className={styles.title}>Travle-Klon</h1>
-      <p className={styles.subtitle}>
-        Finde eine Kette von Landgrenzen von Start bis Ziel.
-      </p>
+    <div className={styles.app}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>Travle-Klon</h1>
+        <StartEndBox start={gameState.start} end={gameState.end} compact />
+      </header>
 
-      <StartEndBox start={gameState.start} end={gameState.end} />
+      <main className={styles.mapArea}>
+        <MapView
+          revealedCountries={revealedCountries}
+          target={gameState.end}
+          isWon={gameState.isWon}
+        />
 
-      <GuessInput
-        onGuess={handleGuess}
-        disabled={gameState.isWon}
-        excludeNames={excludeNames}
-      />
+        <div className={`${styles.overlay} ${styles.progressOverlay}`}>
+          <p className={styles.progressText}>
+            {gameState.correctGuesses.length}{" "}
+            {gameState.correctGuesses.length === 1 ? "Land" : "Länder"} · optimal:{" "}
+            {intermediateStepsInOptimalPath}
+          </p>
+          <GuessList state={gameState} compact />
+        </div>
 
-      <ResultSummary state={gameState} />
+        <div className={`${styles.overlay} ${styles.wrongOverlay}`}>
+          <WrongGuessesPanel wrongGuesses={gameState.wrongGuesses} />
+        </div>
 
-      <p className={styles.progress}>
-        {gameState.correctGuesses.length}{" "}
-        {gameState.correctGuesses.length === 1 ? "Land" : "Länder"} erraten · optimaler
-        Pfad: {intermediateStepsInOptimalPath} Zwischenländer
-      </p>
+        {gameState.isWon && (
+          <div className={styles.resultOverlay}>
+            <ResultSummary state={gameState} />
+          </div>
+        )}
+      </main>
 
-      <GuessList state={gameState} />
-
-      <MapView
-        start={gameState.start}
-        end={gameState.end}
-        correctGuesses={gameState.correctGuesses}
-      />
-
-      <WrongGuessesPanel wrongGuesses={gameState.wrongGuesses} />
+      <footer className={styles.footer}>
+        <GuessInput
+          onGuess={handleGuess}
+          disabled={gameState.isWon}
+          excludeNames={excludeNames}
+        />
+      </footer>
     </div>
   );
 }
