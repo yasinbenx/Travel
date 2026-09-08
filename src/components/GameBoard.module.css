@@ -4,6 +4,16 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--bg);
+  animation: screenEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes screenEnter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .mapArea {
@@ -12,43 +22,64 @@
   min-height: 0;
 }
 
-.overlay {
+.overlayBar {
   position: absolute;
   z-index: 10;
-  max-width: min(78vw, 260px);
+  top: 0.7rem;
+  left: 0.7rem;
+  right: 0.7rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.overlay {
+  max-width: min(60vw, 260px);
 }
 
 .progressOverlay {
-  top: 0.6rem;
-  left: 0.6rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
   border: 1px solid var(--border);
-  backdrop-filter: blur(2px);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(3px);
 }
 
-.progressText {
-  margin: 0 0 0.35rem;
-  font-size: 0.72rem;
-  color: var(--text-muted);
+.stepCounter {
+  margin: 0 0 0.4rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: var(--heading);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-primary);
   white-space: nowrap;
 }
 
+.stepOptimal {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 .wrongOverlay {
-  top: 0.6rem;
-  right: 0.6rem;
+  flex: none;
 }
 
 .footer {
   flex: none;
-  padding: 0.65rem 0.75rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.7rem 0.8rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: var(--surface);
+  box-shadow: 0 -4px 16px rgba(20, 33, 61, 0.06);
 }
 
 @media (max-width: 480px) {
   .overlay {
-    max-width: min(85vw, 220px);
+    max-width: min(56vw, 190px);
   }
 }

@@ -4,6 +4,18 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--bg);
+  animation: screenEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes screenEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .summaryArea {
@@ -36,22 +48,31 @@
 .playAgainButton {
   width: 100%;
   max-width: 420px;
-  padding: 0.75rem 1.5rem;
+  padding: 0.8rem 1.5rem;
   font: inherit;
+  font-family: var(--heading);
   font-size: 0.95rem;
   font-weight: 700;
-  color: #fff;
-  background: var(--accent);
+  color: var(--color-primary);
+  background: var(--color-accent);
   border: none;
   border-radius: 999px;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
 .playAgainButton:hover {
-  opacity: 0.9;
+  background: var(--color-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .playAgainButton:active {
-  opacity: 0.8;
+  background: var(--color-accent-active);
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }

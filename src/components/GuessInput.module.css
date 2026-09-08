@@ -5,25 +5,72 @@
 .input {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1.1rem;
   font-size: 1rem;
   font-family: inherit;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
   outline: none;
-  transition: border-color 0.15s ease;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .input:focus {
-  border-color: var(--accent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 
 .input:disabled {
   background: var(--surface-muted);
   color: var(--text-muted);
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.shake,
+.shake:focus {
+  animation: shake 0.35s ease;
+  border-color: var(--wrong-text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wrong-text) 25%, transparent);
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(4px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-7px);
+  }
+  40%,
+  60% {
+    transform: translateX(7px);
+  }
+}
+
+.pulseCorrect,
+.pulseCorrect:focus {
+  animation: pulseCorrect 0.5s ease;
+  border-color: var(--correct-text);
+}
+
+@keyframes pulseCorrect {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--correct-text) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
 }
 
 .dropdown {
@@ -38,23 +85,24 @@
   left: 0;
   right: 0;
   bottom: 100%;
-  margin-bottom: 0.35rem;
-  padding: 0.35rem;
+  margin-bottom: 0.4rem;
+  padding: 0.4rem;
   list-style: none;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
   max-height: 260px;
   overflow-y: auto;
 }
 
 .option {
-  padding: 0.6rem 0.75rem;
-  border-radius: 7px;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-sm);
   font-size: 0.95rem;
   color: var(--text);
   cursor: pointer;
+  transition: background 0.1s ease;
 }
 
 .option:hover,

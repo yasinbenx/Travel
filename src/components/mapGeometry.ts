@@ -1,7 +1,7 @@
 import type { Feature, Geometry, Polygon } from "geojson";
 import type { GeometryCollection, Topology } from "topojson-specification";
 import { feature } from "topojson-client";
-import type { GeoPath } from "d3-geo";
+import { geoCentroid, type GeoPath } from "d3-geo";
 import rawWorldTopology from "world-atlas/countries-50m.json";
 import { resolveMapCountryName } from "../data/mapCountryNames";
 import { MAP_HEIGHT, MAP_WIDTH, createMapPath, createMapProjection } from "./mapProjection";
@@ -44,23 +44,26 @@ function isFiniteBounds(bounds: Bounds): boolean {
 }
 
 /**
- * Returns the bounding box of the LARGEST (by area) sub-piece of a
- * country's feature. Several of our source geometries bundle far-flung
- * overseas territories as extra polygons into the same MultiPolygon (e.g.
- * France's geometry in this dataset also includes French Guiana in South
- * America). Using the whole MultiPolygon's bounding box would make just
- * revealing France stretch the zoom view across half the Atlantic. The
- * "mainland" (the single largest contiguous area) is by far the more
- * sensible reference for the zoom calculation.
+ * Returns the LARGEST (by projected area) sub-piece of a country's
+ * feature, as a standalone feature. Several of our source geometries
+ * bundle far-flung overseas territories as extra polygons into the same
+ * MultiPolygon (e.g. France's geometry in this dataset also includes
+ * French Guiana in South America). Using the whole MultiPolygon for
+ * bounds or centroid purposes would, for example, stretch France's zoom
+ * view across half the Atlantic, or place its label somewhere in the mid-
+ * Atlantic. The "mainland" (the single largest contiguous area) is by far
+ * the more sensible reference for both.
  */
-function getPrimaryBounds(path: GeoPath, geoFeature: Feature<Geometry>): Bounds | null {
+function getPrimaryFeature(
+  path: GeoPath,
+  geoFeature: Feature<Geometry>,
+): Feature<Polygon> | Feature<Geometry> | null {
   if (geoFeature.geometry.type !== "MultiPolygon") {
-    const bounds = path.bounds(geoFeature) as Bounds;
-    return isFiniteBounds(bounds) ? bounds : null;
+    return geoFeature;
   }
 
   let largestArea = -Infinity;
-  let largestBounds: Bounds | null = null;
+  let largestFeature: Feature<Polygon> | null = null;
 
   for (const polygonCoordinates of geoFeature.geometry.coordinates) {
     const polygonFeature: Feature<Polygon> = {
@@ -69,16 +72,36 @@ function getPrimaryBounds(path: GeoPath, geoFeature: Feature<Geometry>): Bounds 
       geometry: { type: "Polygon", coordinates: polygonCoordinates },
     };
     const area = Math.abs(path.area(polygonFeature));
-    if (area <= largestArea) continue;
-
-    const bounds = path.bounds(polygonFeature) as Bounds;
-    if (!isFiniteBounds(bounds)) continue;
-
-    largestArea = area;
-    largestBounds = bounds;
+    if (area > largestArea) {
+      largestArea = area;
+      largestFeature = polygonFeature;
+    }
   }
 
-  return largestBounds;
+  return largestFeature;
+}
+
+function getPrimaryBounds(path: GeoPath, geoFeature: Feature<Geometry>): Bounds | null {
+  const primary = getPrimaryFeature(path, geoFeature);
+  if (!primary) return null;
+  const bounds = path.bounds(primary) as Bounds;
+  return isFiniteBounds(bounds) ? bounds : null;
+}
+
+/**
+ * Returns the [longitude, latitude] centroid of a country's mainland (see
+ * {@link getPrimaryFeature}), for placing an on-map label. Returns `null`
+ * for countries with no geometry in this dataset.
+ */
+export function getCountryCentroid(name: string): [number, number] | null {
+  const geoFeature = featureByCanonicalName.get(name);
+  if (!geoFeature) return null;
+
+  const primary = getPrimaryFeature(createMapPath(), geoFeature);
+  if (!primary) return null;
+
+  const centroid = geoCentroid(primary);
+  return Number.isFinite(centroid[0]) && Number.isFinite(centroid[1]) ? centroid : null;
 }
 
 /**

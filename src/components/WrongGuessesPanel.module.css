@@ -1,7 +1,8 @@
 .panel {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--surface);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -15,9 +16,14 @@
   background: transparent;
   border: none;
   font: inherit;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--wrong-text);
   cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.toggle:not(:disabled):hover {
+  background: var(--surface-muted);
 }
 
 .toggle:disabled {

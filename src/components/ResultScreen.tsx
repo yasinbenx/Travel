@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import confetti from "canvas-confetti";
 import type { GameState } from "../game/gameEngine";
 import { AppHeader } from "./AppHeader";
 import { MapView } from "./MapView";
@@ -18,6 +20,16 @@ type ResultScreenProps = {
  */
 export function ResultScreen({ state, onPlayAgain }: ResultScreenProps) {
   const revealedCountries = [state.start, ...state.correctGuesses];
+
+  useEffect(() => {
+    confetti({
+      particleCount: 130,
+      spread: 75,
+      startVelocity: 45,
+      origin: { y: 0.35 },
+      colors: ["#14213d", "#f0a93e", "#2f9e6e"],
+    });
+  }, []);
 
   return (
     <div className={styles.app}>

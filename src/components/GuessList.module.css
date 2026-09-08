@@ -13,7 +13,7 @@
   font-size: 0.9rem;
   color: var(--text-muted);
   border: 1px dashed var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .row {
@@ -22,10 +22,11 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.7rem 0.9rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--correct-bg);
   border: 1px solid var(--correct-border);
-  animation: appear 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  animation: appear 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .country {
@@ -72,7 +73,7 @@
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
   white-space: nowrap;
-  animation: appear 0.2s ease;
+  animation: appear 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .chipSkip {

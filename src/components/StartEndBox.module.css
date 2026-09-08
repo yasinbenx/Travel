@@ -13,8 +13,18 @@
   gap: 0.25rem;
   padding: 0.85rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  border-top: 3px solid transparent;
+}
+
+.start {
+  border-top-color: var(--map-start);
+}
+
+.end {
+  border-top-color: var(--map-target);
 }
 
 .label {
@@ -26,19 +36,12 @@
 }
 
 .country {
+  font-family: var(--heading);
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
   text-align: center;
   overflow-wrap: anywhere;
-}
-
-.start .label {
-  color: var(--text-muted);
-}
-
-.end .country {
-  color: var(--text);
 }
 
 .arrow {
@@ -53,8 +56,9 @@
   justify-content: center;
   gap: 0.5rem;
   min-width: 0;
+  font-family: var(--heading);
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
 }
 

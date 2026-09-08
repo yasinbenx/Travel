@@ -2,18 +2,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  border-radius: 12px;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
   background: var(--correct-bg);
   border: 1px solid var(--correct-border);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--shadow-lg);
   text-align: center;
 }
 
 .heading {
   margin: 0;
-  font-size: 1.05rem;
+  font-family: var(--heading);
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--correct-text);
 }
@@ -42,18 +43,19 @@
 .optimalRoute {
   width: 100%;
   margin: 0.1rem 0 0;
-  padding: 0.6rem 0.7rem;
-  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   border: 1px solid var(--correct-border);
 }
 
 .optimalRouteLabel {
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.3rem;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--heading);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
 }
 
@@ -66,21 +68,30 @@
 
 .shareButton {
   margin-top: 0.25rem;
-  padding: 0.55rem 1.1rem;
+  padding: 0.65rem 1.4rem;
   font: inherit;
-  font-weight: 600;
-  color: #fff;
-  background: var(--accent);
+  font-family: var(--heading);
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-accent);
   border: none;
   border-radius: 999px;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
 .shareButton:hover {
-  opacity: 0.9;
+  background: var(--color-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .shareButton:active {
-  opacity: 0.8;
+  background: var(--color-accent-active);
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }

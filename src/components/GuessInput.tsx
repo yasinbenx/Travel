@@ -8,6 +8,8 @@ type GuessInputProps = {
   disabled?: boolean;
   /** Country names that should no longer be suggested (start + already correctly guessed). */
   excludeNames?: string[];
+  /** Brief visual feedback for the most recent guess's outcome (auto-clears itself upstream). */
+  feedback?: "correct" | "wrong" | null;
 };
 
 const ALL_COUNTRIES = Object.keys(countryAdjacency).sort();
@@ -18,7 +20,12 @@ const MAX_SUGGESTIONS = 8;
  * from the adjacency list as the player types; Enter or clicking a
  * suggestion applies the selection and reports it via `onGuess`.
  */
-export function GuessInput({ onGuess, disabled = false, excludeNames = [] }: GuessInputProps) {
+export function GuessInput({
+  onGuess,
+  disabled = false,
+  excludeNames = [],
+  feedback = null,
+}: GuessInputProps) {
   const [value, setValue] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isOpen, setIsOpen] = useState(false);
@@ -81,11 +88,13 @@ export function GuessInput({ onGuess, disabled = false, excludeNames = [] }: Gue
   }
 
   const showDropdown = isOpen && !disabled && suggestions.length > 0;
+  const feedbackClass =
+    feedback === "wrong" ? styles.shake : feedback === "correct" ? styles.pulseCorrect : "";
 
   return (
     <div className={styles.wrapper}>
       <input
-        className={styles.input}
+        className={`${styles.input} ${feedbackClass}`}
         type="text"
         autoComplete="off"
         autoCapitalize="words"

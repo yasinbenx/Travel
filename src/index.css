@@ -1,24 +1,50 @@
 :root {
-  --bg: #f4f4f2;
+  /* Brand */
+  --color-primary: #14213d;
+  --color-primary-hover: #1f3358;
+  --color-primary-active: #0e1830;
+  --color-accent: #f0a93e;
+  --color-accent-hover: #e0982a;
+  --color-accent-active: #cb8a24;
+
+  /* Neutrals */
+  --bg: #f4f6fa;
   --surface: #ffffff;
-  --surface-muted: #f0efec;
-  --border: #dcdad4;
-  --text: #1f1f1f;
-  --text-muted: #767472;
-  --accent: #2f6f4f;
+  --surface-muted: #eceef3;
+  --border: #dde2ea;
+  --text: #14213d;
+  --text-muted: #62697d;
 
-  --correct-bg: #eaf6ec;
-  --correct-border: #b9e0c0;
-  --correct-text: #1e6b3a;
-  --correct-badge-bg: #d3ecd8;
+  /* Feedback */
+  --correct-bg: #e5f5ec;
+  --correct-border: #b9e3cb;
+  --correct-text: #1e7a4d;
+  --correct-badge-bg: #cfeedc;
 
-  --wrong-bg: #f4f0f0;
-  --wrong-border: #e2d6d6;
-  --wrong-text: #8a4a4a;
+  --wrong-bg: #fbecea;
+  --wrong-border: #f0c7be;
+  --wrong-text: #b0402a;
 
-  --map-bg: #dbe6ea;
+  /* Map */
+  --map-bg: #d7e3f0;
+  --map-hidden: #e2e6ed;
+  --map-stroke: #f7f8fa;
+  --map-start: #14213d;
+  --map-target: #f0a93e;
+  --map-revealed: #2f9e6e;
 
-  --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Elevation */
+  --shadow-sm: 0 1px 3px rgba(20, 33, 61, 0.09);
+  --shadow-md: 0 8px 24px rgba(20, 33, 61, 0.12);
+  --shadow-lg: 0 20px 48px rgba(20, 33, 61, 0.18);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  --sans: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --heading: "Space Grotesk", var(--sans);
 
   font-family: var(--sans);
   color: var(--text);
@@ -42,6 +68,12 @@ body {
 
 #root {
   min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--heading);
 }
 
 button {

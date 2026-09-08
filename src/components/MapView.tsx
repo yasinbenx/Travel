@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import type { GeoJsonObject } from "geojson";
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import rawWorldTopology from "world-atlas/countries-50m.json";
 import { resolveMapCountryName } from "../data/mapCountryNames";
-import { computeMapView } from "./mapGeometry";
+import { computeMapView, getCountryCentroid } from "./mapGeometry";
 import { MAP_SCALE } from "./mapProjection";
 import styles from "./MapView.module.css";
 
@@ -16,52 +16,75 @@ const worldTopology = rawWorldTopology as unknown as GeoJsonObject;
 type MapViewProps = {
   /** Start country + correctly guessed countries so far, in order. */
   revealedCountries: string[];
-  /** Target country — stays hidden until the win (see comment below). */
+  /** Target country — always visible, but only reached once won (see below). */
   target: string;
   isWon: boolean;
 };
 
 const COLORS = {
-  stroke: "#f8f7f3",
-  revealed: "#5fae7c",
-  start: "#3f7f5c",
-  target: "#d98a4a",
+  stroke: "#f7f8fa",
+  revealed: "#2f9e6e",
+  start: "#14213d",
+  target: "#f0a93e",
+  labelHalo: "#ffffff",
 };
 
 /**
- * SVG world map in a "path reveal" style: ONLY the start country and the
- * countries correctly guessed so far are rendered at all (outline + fill).
- * Every other country is filtered out of the geographies array entirely
- * — not just subtly colored — so its outline can't give away the target's
- * location or shape. The background is a plain, neutral fill with no
- * outlines at all.
+ * SVG world map in a "path reveal" style: the start country AND the
+ * target country are visible from the very first render (in distinct
+ * colors, each with an on-map label), so the player always knows where
+ * they're starting from and navigating to. Only the countries in between
+ * stay hidden until correctly guessed — every other country is filtered
+ * out of the geographies array entirely, not just subtly colored, so no
+ * outline can leak a hint about what lies between them.
  *
- * The target country deliberately stays unmarked until the win: in the
- * real travle.earth, the target's outline is likewise hidden by default
- * and only revealed through an optional, actively-requested hint ("Show
- * next/all country outline") — there's no automatic target marker there
- * either. This is handled the same way here on purpose.
- *
- * The view automatically zooms/centers on the bounding box of all
- * revealed countries (`computeMapView`, driven via `ZoomableGroup`).
+ * The view automatically zooms/centers on the bounding box of the start,
+ * target, and all revealed countries (`computeMapView`, driven via
+ * `ZoomableGroup`).
  */
 export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
   const revealedSet = useMemo(() => new Set(revealedCountries), [revealedCountries]);
   const startCountry = revealedCountries[0];
 
   const view = useMemo(
-    () => computeMapView(isWon ? [...revealedCountries, target] : revealedCountries),
-    [revealedCountries, target, isWon],
+    () => computeMapView([...revealedCountries, target]),
+    [revealedCountries, target],
   );
 
   function isVisible(canonicalName: string): boolean {
-    return revealedSet.has(canonicalName) || (isWon && canonicalName === target);
+    return revealedSet.has(canonicalName) || canonicalName === target;
   }
 
   function fillFor(canonicalName: string): string {
-    if (isWon && canonicalName === target) return COLORS.target;
+    if (canonicalName === target) return COLORS.target;
     if (canonicalName === startCountry) return COLORS.start;
     return COLORS.revealed;
+  }
+
+  const inverseZoom = 1 / view.zoom;
+  const startCentroid = getCountryCentroid(startCountry);
+  const targetCentroid = getCountryCentroid(target);
+
+  function renderLabel(name: string, centroid: [number, number] | null, color: string) {
+    if (!centroid) return null;
+    return (
+      <Marker coordinates={centroid}>
+        <g transform={`scale(${inverseZoom})`} className={styles.label}>
+          <circle r={4} fill={color} stroke={COLORS.labelHalo} strokeWidth={1.5} />
+          <text
+            textAnchor="middle"
+            y={-9}
+            className={styles.labelText}
+            fill={color}
+            stroke={COLORS.labelHalo}
+            strokeWidth={3}
+            paintOrder="stroke"
+          >
+            {name}
+          </text>
+        </g>
+      </Marker>
+    );
   }
 
   return (
@@ -90,7 +113,11 @@ export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    className={styles.geography}
+                    className={
+                      canonicalName === target && isWon
+                        ? `${styles.geography} ${styles.geographyReached}`
+                        : styles.geography
+                    }
                     fill={fillFor(canonicalName)}
                     stroke={COLORS.stroke}
                     strokeWidth={0.4}
@@ -98,6 +125,8 @@ export function MapView({ revealedCountries, target, isWon }: MapViewProps) {
                 ))
             }
           </Geographies>
+          {renderLabel(startCountry, startCentroid, COLORS.start)}
+          {renderLabel(target, targetCentroid, COLORS.target)}
         </ZoomableGroup>
       </ComposableMap>
     </div>

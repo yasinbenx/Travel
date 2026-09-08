@@ -20,6 +20,7 @@ import { StartScreen } from "./StartScreen";
  */
 export function AppShell() {
   const [gameState, setGameState] = useState<GameState | null>(() => loadGameState());
+  const [puzzleError, setPuzzleError] = useState<string | null>(null);
 
   useEffect(() => {
     if (gameState) {
@@ -32,16 +33,22 @@ export function AppShell() {
   }
 
   function handleNewGame() {
-    setGameState(createRandomGameState());
+    try {
+      setGameState(createRandomGameState());
+      setPuzzleError(null);
+    } catch (error) {
+      console.error("Failed to generate a new puzzle:", error);
+      setPuzzleError("Couldn't find a new puzzle. Please try again.");
+    }
   }
 
   if (!gameState) {
-    return <StartScreen onStart={handleNewGame} />;
+    return <StartScreen onStart={handleNewGame} error={puzzleError} />;
   }
 
   if (gameState.isWon) {
     return <ResultScreen state={gameState} onPlayAgain={handleNewGame} />;
   }
 
-  return <GameBoard state={gameState} onGuess={handleGuess} />;
+  return <GameBoard state={gameState} onGuess={handleGuess} onRestart={handleNewGame} />;
 }
