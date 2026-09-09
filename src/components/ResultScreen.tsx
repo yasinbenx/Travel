@@ -23,6 +23,7 @@ type ResultScreenProps = {
  */
 export function ResultScreen({ state, currentStreak, onHome, onOpenStats }: ResultScreenProps) {
   useEffect(() => {
+    if (state.isGivenUp) return;
     confetti({
       particleCount: 130,
       spread: 75,
@@ -30,7 +31,7 @@ export function ResultScreen({ state, currentStreak, onHome, onOpenStats }: Resu
       origin: { y: 0.35 },
       colors: ["#14213d", "#f0a93e", "#2f9e6e"],
     });
-  }, []);
+  }, [state.isGivenUp]);
 
   return (
     <div className={styles.app}>

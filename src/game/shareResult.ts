@@ -23,16 +23,19 @@ export function buildEmojiGrid(state: GameState): string {
  * Builds the full result text that gets copied to the clipboard, e.g.
  * "BorderHop Day #42 [Medium] 🔥5 - 6/6 steps" followed by the emoji
  * grid — `currentStreak` is only shown when it's actually active (> 0).
+ * A given-up round has no meaningful step count, so it reports "Gave up"
+ * instead of a steps ratio.
  */
 export function buildShareText(state: GameState, currentStreak: number): string {
-  const steps = getConfirmedChain(state).length;
-  const optimalSteps = state.optimalPath.length - 2;
   const dayNumber = getDayNumber(state.date);
   const streakPart = currentStreak > 0 ? ` 🔥${currentStreak}` : "";
+  const resultPart = state.isGivenUp
+    ? "Gave up"
+    : `${getConfirmedChain(state).length}/${state.optimalPath.length - 2} steps`;
 
   const headerLine =
     `BorderHop Day #${dayNumber} [${DIFFICULTY_LABEL[state.difficulty]}]${streakPart}` +
-    ` - ${steps}/${optimalSteps} steps`;
+    ` - ${resultPart}`;
 
   return [headerLine, buildEmojiGrid(state)].join("\n");
 }

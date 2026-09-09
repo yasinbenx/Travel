@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Link2, PartyPopper, Share2, Trophy, X } from "lucide-react";
+import { Check, Flag, Link2, PartyPopper, Share2, Trophy, X } from "lucide-react";
 import { getConfirmedChain, type GameState, type Guess } from "../game/gameEngine";
 import { buildEmojiGrid, buildShareText } from "../game/shareResult";
 import { MapView } from "./MapView";
@@ -41,15 +41,17 @@ async function copyToClipboard(text: string): Promise<boolean> {
 }
 
 /**
- * Appears once the round is won: shows the player's own step count
- * compared to the optimal step count, plus a Wordle-style emoji grid
- * that can be copied to the clipboard as shareable result text.
+ * Appears once the round is finished — either won or given up. On a win,
+ * shows the player's own step count compared to the optimal step count,
+ * plus a Wordle-style emoji grid that can be copied to the clipboard as
+ * shareable result text. On a give-up, skips all of that (there's no
+ * player route to compare) and simply shows the optimal solution.
  */
 export function ResultSummary({ state, currentStreak }: ResultSummaryProps) {
   const [copyTarget, setCopyTarget] = useState<CopyTarget>(null);
   const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle");
 
-  if (!state.isWon) {
+  if (!state.isWon && !state.isGivenUp) {
     return null;
   }
 
@@ -93,19 +95,31 @@ export function ResultSummary({ state, currentStreak }: ResultSummaryProps) {
 
   return (
     <div className={styles.card} role="status">
-      <p className={styles.heading}>
-        <PartyPopper size={20} strokeWidth={2.25} />
-        You made it!
-      </p>
+      {state.isGivenUp ? (
+        <p className={styles.heading}>
+          <Flag size={20} strokeWidth={2.25} />
+          You gave up
+        </p>
+      ) : (
+        <p className={styles.heading}>
+          <PartyPopper size={20} strokeWidth={2.25} />
+          You made it!
+        </p>
+      )}
       {currentStreak > 0 && <StreakBadge days={currentStreak} />}
-      <p className={styles.stats}>
-        {steps} {steps === 1 ? "step" : "steps"} · optimal: {optimalSteps}
-      </p>
-      <p className={styles.grid} aria-hidden="true">
-        {buildEmojiGrid(state)}
-      </p>
 
-      {tookOptimalRoute ? (
+      {state.isWon && (
+        <>
+          <p className={styles.stats}>
+            {steps} {steps === 1 ? "step" : "steps"} · optimal: {optimalSteps}
+          </p>
+          <p className={styles.grid} aria-hidden="true">
+            {buildEmojiGrid(state)}
+          </p>
+        </>
+      )}
+
+      {state.isWon && tookOptimalRoute ? (
         <p className={styles.optimalMessage}>
           <Trophy size={16} strokeWidth={2.25} />
           You found the optimal route!

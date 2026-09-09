@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { countryAdjacency } from "../data/countryAdjacency";
 import { findShortestPath } from "../lib/findShortestPath";
 import {
   evaluateGuessQuality,
   generateDailyPuzzle,
   generateDailyPuzzleSet,
   getConfirmedChain,
+  giveUp,
   resolveCountryName,
   submitGuess,
   type GameState,
@@ -18,6 +20,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     optimalPath: ["Germany", "Austria", "Italy"],
     guesses: [],
     isWon: false,
+    isGivenUp: false,
     difficulty: "medium",
     ...overrides,
   };
@@ -197,6 +200,38 @@ describe("submitGuess: neighbor vs. non-neighbor", () => {
   });
 });
 
+describe("giveUp", () => {
+  it("marks an in-progress game as given up, without touching isWon or existing guesses", () => {
+    const state = submitGuess(makeState(), "Czech Republic"); // Germany -> Italy, not won yet
+    expect(state.isWon).toBe(false);
+    const result = giveUp(state);
+    expect(result.isGivenUp).toBe(true);
+    expect(result.isWon).toBe(false);
+    expect(result.guesses).toEqual(state.guesses);
+  });
+
+  it("is a no-op once the game is already won", () => {
+    const state = submitGuess(makeState({ start: "France", end: "Spain", optimalPath: ["France", "Spain"] }), "Spain");
+    expect(state.isWon).toBe(true);
+    const result = giveUp(state);
+    expect(result).toEqual(state);
+    expect(result.isGivenUp).toBe(false);
+  });
+
+  it("is a no-op if already given up", () => {
+    const state = giveUp(makeState());
+    const result = giveUp(state);
+    expect(result).toBe(state);
+  });
+
+  it("blocks further guesses once given up", () => {
+    const state = giveUp(makeState({ start: "France", end: "Spain" }));
+    const result = submitGuess(state, "Spain");
+    expect(result).toBe(state);
+    expect(result.guesses).toEqual([]);
+  });
+});
+
 describe("evaluateGuessQuality", () => {
   it("grades a neighbor that matches the reference optimal path's next step as gold", () => {
     const state = makeState({ start: "Germany", end: "Italy", optimalPath: ["Germany", "Austria", "Italy"] });
@@ -237,19 +272,35 @@ describe("evaluateGuessQuality", () => {
     });
   });
 
-  it("grades a neighbor with a 2+ country detour as red, even though it's still a valid, chain-extending move", () => {
+  it("grades a real neighbor with a 2-country detour as orange, NEVER red — red is exclusively for non-neighbors", () => {
     // Germany and Poland directly border each other (1 hop) — the best
     // possible remaining distance from Germany is therefore 0. France is a
     // real Germany neighbor, but is 2 hops from Poland (via Germany again),
-    // which is 2 more than the best possible remaining distance -> red.
-    // France is still a real neighbor of Germany, so it still extends the
-    // chain (isNeighbor: true) — a bad move can still be a valid one.
+    // which is 2 more than the best possible remaining distance. A real
+    // neighbor can never be red, no matter how bad the detour — only
+    // "not a neighbor at all" is red.
     const optimalPath = findShortestPath("Germany", "Poland");
     const state = makeState({ start: "Germany", end: "Poland", optimalPath });
 
     expect(evaluateGuessQuality(state, "France")).toEqual({
       country: "France",
-      quality: "red",
+      quality: "orange",
+      isNeighbor: true,
+    });
+  });
+
+  it("grades a real dead-end neighbor (leads nowhere useful) as orange, never red", () => {
+    // Spain directly borders France (1 hop) — best possible remaining
+    // distance from Spain is 0. Portugal is a real Spain neighbor, but
+    // Portugal's ONLY neighbor is Spain itself (a literal dead end), so
+    // it's 2 hops from France (Portugal -> Spain -> France). Still a real
+    // neighbor, so still orange, never red.
+    const optimalPath = findShortestPath("Spain", "France");
+    const state = makeState({ start: "Spain", end: "France", optimalPath });
+
+    expect(evaluateGuessQuality(state, "Portugal")).toEqual({
+      country: "Portugal",
+      quality: "orange",
       isNeighbor: true,
     });
   });
@@ -288,6 +339,46 @@ describe("evaluateGuessQuality", () => {
       quality: "red",
       isNeighbor: false,
     });
+  });
+
+  it("Germany -> Morocco: guessing the USA (not a neighbor of Germany) is red", () => {
+    const state = makeState({ start: "Germany", end: "Morocco", optimalPath: findShortestPath("Germany", "Morocco") });
+    expect(evaluateGuessQuality(state, "USA")).toEqual({
+      country: "United States",
+      quality: "red",
+      isNeighbor: false,
+    });
+  });
+
+  it("Canada -> Panama: guessing India (not a neighbor of Canada) is red", () => {
+    const state = makeState({ start: "Canada", end: "Panama", optimalPath: findShortestPath("Canada", "Panama") });
+    expect(evaluateGuessQuality(state, "India")).toEqual({
+      country: "India",
+      quality: "red",
+      isNeighbor: false,
+    });
+  });
+
+  it("never returns red for a real neighbor, across every difficulty and detour size (property check)", () => {
+    const pairs: [string, string][] = [
+      ["Germany", "Italy"],
+      ["Germany", "Poland"],
+      ["Spain", "France"],
+      ["Denmark", "Italy"],
+      ["Morocco", "Germany"],
+      ["Canada", "Panama"],
+      ["France", "Rwanda"],
+    ];
+
+    for (const [start, end] of pairs) {
+      const optimalPath = findShortestPath(start, end);
+      const state = makeState({ start, end, optimalPath });
+      for (const neighbor of countryAdjacency[start] ?? []) {
+        const guess = evaluateGuessQuality(state, neighbor);
+        expect(guess.isNeighbor).toBe(true);
+        expect(guess.quality).not.toBe("red");
+      }
+    }
   });
 });
 

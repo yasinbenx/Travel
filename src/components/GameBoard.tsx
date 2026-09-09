@@ -9,6 +9,7 @@ import styles from "./GameBoard.module.css";
 type GameBoardProps = {
   state: GameState;
   onGuess: (guess: string) => void;
+  onGiveUp: () => void;
   onHome: () => void;
   onOpenStats: () => void;
 };
@@ -27,9 +28,15 @@ type GuessFeedback = "correct" | "wrong" | null;
  * result screen on a win are all handled by `AppShell`, which only
  * renders this component while the round is still in progress.
  */
-export function GameBoard({ state, onGuess, onHome, onOpenStats }: GameBoardProps) {
+export function GameBoard({ state, onGuess, onGiveUp, onHome, onOpenStats }: GameBoardProps) {
   const [feedback, setFeedback] = useState<GuessFeedback>(null);
   const previousGuessCount = useRef(state.guesses.length);
+
+  function handleGiveUpClick() {
+    if (window.confirm("Are you sure you want to give up? You'll see the solution.")) {
+      onGiveUp();
+    }
+  }
 
   useEffect(() => {
     if (state.guesses.length > previousGuessCount.current) {
@@ -68,6 +75,9 @@ export function GameBoard({ state, onGuess, onHome, onOpenStats }: GameBoardProp
             <span className={styles.stepOptimal}>optimal: {intermediateStepsInOptimalPath}</span>
           </p>
           <GuessList state={state} />
+          <button type="button" className={styles.giveUpLink} onClick={handleGiveUpClick}>
+            Give up
+          </button>
         </div>
       </main>
 

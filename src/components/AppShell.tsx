@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createDailyGameState } from "../game/dailyGameState";
 import { getTodayDateString } from "../game/dateUtils";
-import { submitGuess, type Difficulty, type GameState } from "../game/gameEngine";
+import { giveUp, submitGuess, type Difficulty, type GameState } from "../game/gameEngine";
 import { gameKey, hasSeenTutorial, loadAllGames, markTutorialSeen, saveGame } from "../game/persistence";
 import { loadStreak, recordDailyCompletion, type StreakState } from "../game/streak";
 import { GameBoard } from "./GameBoard";
@@ -65,6 +65,23 @@ export function AppShell() {
     }
   }
 
+  function handleGiveUp() {
+    if (!selection) return;
+    const key = gameKey(today, selection.difficulty);
+    const current = games[key];
+    if (!current) return;
+
+    const updated = giveUp(current);
+    saveGame(updated);
+    setGames((prev) => ({ ...prev, [key]: updated }));
+
+    // A given-up round still keeps the streak alive, same as a win —
+    // any completed challenge counts, per the "at least one per day" rule.
+    if (updated.isGivenUp && !current.isGivenUp) {
+      setStreak(recordDailyCompletion(today));
+    }
+  }
+
   function handleGoHome() {
     setSelection(null);
     setPuzzleError(null);
@@ -113,7 +130,7 @@ export function AppShell() {
     return null;
   }
 
-  if (state.isWon) {
+  if (state.isWon || state.isGivenUp) {
     return (
       <ResultScreen
         state={state}
@@ -128,6 +145,7 @@ export function AppShell() {
     <GameBoard
       state={state}
       onGuess={handleGuess}
+      onGiveUp={handleGiveUp}
       onHome={handleGoHome}
       onOpenStats={() => setStatsOpen(true)}
     />

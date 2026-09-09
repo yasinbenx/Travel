@@ -22,6 +22,7 @@ function createTutorialState(): GameState {
     optimalPath: ["Germany", "France"],
     guesses: [],
     isWon: false,
+    isGivenUp: false,
   };
 }
 

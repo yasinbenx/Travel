@@ -13,5 +13,6 @@ export function createDailyGameState(date: string, difficulty: Difficulty): Game
     optimalPath,
     guesses: [],
     isWon: false,
+    isGivenUp: false,
   };
 }

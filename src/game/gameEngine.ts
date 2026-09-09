@@ -21,6 +21,8 @@ export type GameState = {
   optimalPath: string[];
   guesses: Guess[];
   isWon: boolean;
+  /** True once the player gives up on this round — distinct from `isWon`; never counts as a perfect solve. */
+  isGivenUp: boolean;
 };
 
 export type Difficulty = "easy" | "medium" | "hard";
@@ -39,8 +41,6 @@ export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   hard: "Hard",
 };
 
-/** A neighbor guess that lengthens the remaining route by this many countries or fewer is "orange"; more is "red". */
-const MAX_ORANGE_DETOUR = 1;
 
 // ---------------------------------------------------------------------
 // Name normalization / alias resolution
@@ -106,28 +106,32 @@ function getLastConfirmedCountry(state: GameState): string {
 // ---------------------------------------------------------------------
 
 /**
- * Grades a single guess against the last confirmed country:
+ * Grades a single guess against the last confirmed country. The
+ * isNeighbor check comes FIRST and is the only thing that can ever
+ * produce "red":
  *
- * - Not a real, recognized country, or not a direct land-border neighbor
- *   of the last confirmed country at all -> "red", `isNeighbor: false`.
- *   This covers both a near-miss and a wildly distant guess (e.g. the
- *   USA on a Morocco -> Germany route) equally — neither is a valid next
- *   step, so neither extends the chain.
- * - A real neighbor: graded purely on this one step, by comparing the
- *   guess's own BFS distance to the target against the theoretically
- *   best possible remaining distance after ANY optimal step from the
- *   last confirmed country (`BFS(lastConfirmed, target) - 1`). This is
- *   a fresh graph computation, not a lookup against the exact position
- *   in the original reference path — so a real neighbor that keeps the
- *   route just as short (e.g. an equally good alternative branch to the
- *   target) is never mistaken for a detour merely because it isn't the
- *   one specific country the reference path happened to pick next.
- *   0 extra -> "gold" (matches the reference path's next step) or
- *   "green" (an equally short alternative); 1 extra -> "orange"; 2+
- *   extra -> "red" (but still `isNeighbor: true`, so it still extends
- *   the chain — a bad move can still be a valid one). Since the guess is
- *   exactly one hop from the last confirmed country, this delta can only
- *   ever be 0, 1, or 2 (the BFS triangle inequality bounds it).
+ * 1. Not a real, recognized country, or not a direct land-border
+ *    neighbor of the last confirmed country AT ALL -> "red",
+ *    `isNeighbor: false`, no distance computation needed. This is the
+ *    ONLY way to get red — a completely unconnected guess (e.g. the USA
+ *    on a Germany -> Morocco route), regardless of how far off it is.
+ *    Doesn't extend the chain.
+ * 2. A real neighbor: NEVER red, no matter how bad. Graded purely on
+ *    this one step, by comparing the guess's own fresh BFS distance to
+ *    the target against the theoretically best possible remaining
+ *    distance after any optimal step from the last confirmed country
+ *    (`BFS(lastConfirmed, target) - 1`) — a fresh graph computation each
+ *    time, not a lookup against the exact position in the original
+ *    reference path, so an equally-short alternative branch is never
+ *    mistaken for a detour merely because it isn't the one specific
+ *    country the reference path happened to pick next.
+ *      - 0 extra -> "gold" (matches the reference path's next step) or
+ *        "green" (an equally short alternative, e.g. Austria vs
+ *        Switzerland).
+ *      - 1+ extra -> "orange". For a real neighbor this is normally 1
+ *        (never 2+, per the BFS triangle inequality), but a dead-end
+ *        neighbor is still graded "orange", never "red" — red is
+ *        reserved exclusively for non-neighbors (step 1).
  */
 export function evaluateGuessQuality(state: GameState, guessInput: string): Guess {
   const resolved = resolveCountryName(guessInput);
@@ -160,11 +164,9 @@ export function evaluateGuessQuality(state: GameState, guessInput: string): Gues
     };
   }
 
-  return {
-    country: resolved,
-    quality: detour <= MAX_ORANGE_DETOUR ? "orange" : "red",
-    isNeighbor: true,
-  };
+  // Any real neighbor with a detour, however large, is "orange" — never
+  // "red". Red is reserved exclusively for the non-neighbor case above.
+  return { country: resolved, quality: "orange", isNeighbor: true };
 }
 
 // ---------------------------------------------------------------------
@@ -184,7 +186,7 @@ export function evaluateGuessQuality(state: GameState, guessInput: string): Gues
  * If the game is already won, the state is returned unchanged.
  */
 export function submitGuess(state: GameState, guessInput: string): GameState {
-  if (state.isWon) {
+  if (state.isWon || state.isGivenUp) {
     return state;
   }
 
@@ -199,6 +201,21 @@ export function submitGuess(state: GameState, guessInput: string): GameState {
   const isWon = guess.country === state.end || neighborsOfGuess.includes(state.end);
 
   return { ...state, guesses, isWon };
+}
+
+/**
+ * Marks the round as given up: the player chose to see the solution
+ * instead of finishing it. Distinct from `isWon` — a given-up round
+ * still ends the day's attempt at this difficulty (no further guesses
+ * accepted, and it can never be started over as "new"), but never
+ * counts as a win or a perfect solve in stats. If the round is already
+ * finished (won or given up), returns state unchanged.
+ */
+export function giveUp(state: GameState): GameState {
+  if (state.isWon || state.isGivenUp) {
+    return state;
+  }
+  return { ...state, isGivenUp: true };
 }
 
 // ---------------------------------------------------------------------

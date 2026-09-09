@@ -11,6 +11,7 @@ function makeGame(overrides: Partial<GameState> = {}): GameState {
     optimalPath: ["Germany", "Austria", "Italy"],
     guesses: [{ country: "Austria", quality: "gold", isNeighbor: true }],
     isWon: true,
+    isGivenUp: false,
     ...overrides,
   };
 }
@@ -26,11 +27,42 @@ describe("computeStats", () => {
     });
   });
 
-  it("ignores unfinished (not won) games", () => {
+  it("ignores unfinished (not won, not given up) games", () => {
     const games = {
       a: makeGame({ isWon: false, guesses: [] }),
     };
     expect(computeStats(games).totalPlayed).toBe(0);
+  });
+
+  it("counts a given-up game as played but never as a perfect solve", () => {
+    const games = {
+      a: makeGame({ isWon: false, isGivenUp: true, guesses: [] }),
+    };
+    const stats = computeStats(games);
+    expect(stats.totalPlayed).toBe(1);
+    expect(stats.totalPlayedByDifficulty.medium).toBe(1);
+    expect(stats.perfectSolves).toBe(0);
+    expect(stats.perfectSolvesByDifficulty.medium).toBe(0);
+  });
+
+  it("excludes given-up games from averageStepsOverOptimal", () => {
+    const games = {
+      a: makeGame({ isWon: false, isGivenUp: true, guesses: [] }),
+    };
+    expect(computeStats(games).averageStepsOverOptimal).toBeNull();
+  });
+
+  it("mixes wins and give-ups: both count as played, only the win counts as perfect", () => {
+    const games = {
+      a: makeGame({ difficulty: "easy" }), // won, perfect
+      b: makeGame({ difficulty: "easy", isWon: false, isGivenUp: true, guesses: [] }),
+    };
+    const stats = computeStats(games);
+    expect(stats.totalPlayed).toBe(2);
+    expect(stats.totalPlayedByDifficulty.easy).toBe(2);
+    expect(stats.perfectSolves).toBe(1);
+    expect(stats.perfectSolvesByDifficulty.easy).toBe(1);
+    expect(stats.averageStepsOverOptimal).toBe(1);
   });
 
   it("counts a won game that matches the optimal path as a perfect solve", () => {

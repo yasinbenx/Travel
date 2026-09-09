@@ -14,19 +14,24 @@ function emptyByDifficulty(): Record<Difficulty, number> {
 }
 
 /**
- * Aggregates stats purely from the stored games collection. There's no
- * "fail" state in this game (a puzzle stays open until won), so the only
- * meaningful played/success metric is how many puzzles were won and how
- * efficiently, not a win/loss ratio.
+ * Aggregates stats purely from the stored games collection. A round
+ * finishes either by winning or by giving up; both count as "played" for
+ * the completion count, but only actual wins ever count as a "perfect
+ * solve" or contribute to the average-steps-over-optimal ratio — a
+ * given-up round has no player route worth measuring.
  */
 export function computeStats(games: Record<string, GameState>): Stats {
-  const won = Object.values(games).filter((game) => game.isWon);
+  const finished = Object.values(games).filter((game) => game.isWon || game.isGivenUp);
+  const won = finished.filter((game) => game.isWon);
   const totalPlayedByDifficulty = emptyByDifficulty();
   const perfectSolvesByDifficulty = emptyByDifficulty();
   let ratioSum = 0;
 
-  for (const game of won) {
+  for (const game of finished) {
     totalPlayedByDifficulty[game.difficulty]++;
+  }
+
+  for (const game of won) {
     const steps = getConfirmedChain(game).length;
     const optimalSteps = game.optimalPath.length - 2;
     if (steps <= optimalSteps) {
@@ -41,7 +46,7 @@ export function computeStats(games: Record<string, GameState>): Stats {
     perfectSolvesByDifficulty.hard;
 
   return {
-    totalPlayed: won.length,
+    totalPlayed: finished.length,
     totalPlayedByDifficulty,
     perfectSolves,
     perfectSolvesByDifficulty,

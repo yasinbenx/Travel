@@ -1,4 +1,4 @@
-import { Check, Play } from "lucide-react";
+import { Check, Flag, Play } from "lucide-react";
 import { DIFFICULTY_LABEL, getConfirmedChain, type Difficulty, type GameState } from "../game/gameEngine";
 import styles from "./DailyChallengeTile.module.css";
 
@@ -29,7 +29,8 @@ const DIFFICULTY_HINT: Record<Difficulty, string> = {
  * fresh one, since each difficulty only has a single puzzle per day.
  */
 export function DailyChallengeTile({ difficulty, game, onClick }: DailyChallengeTileProps) {
-  const isCompleted = game?.isWon ?? false;
+  const isCompleted = (game?.isWon || game?.isGivenUp) ?? false;
+  const isGivenUp = game?.isGivenUp ?? false;
   const steps = game ? getConfirmedChain(game).length : 0;
 
   return (
@@ -51,8 +52,17 @@ export function DailyChallengeTile({ difficulty, game, onClick }: DailyChallenge
       <span className={styles.label}>{DIFFICULTY_LABEL[difficulty]}</span>
       {isCompleted ? (
         <span className={styles.status}>
-          <Check size={13} strokeWidth={3} />
-          {steps} {steps === 1 ? "step" : "steps"}
+          {isGivenUp ? (
+            <>
+              <Flag size={13} strokeWidth={3} />
+              Gave up
+            </>
+          ) : (
+            <>
+              <Check size={13} strokeWidth={3} />
+              {steps} {steps === 1 ? "step" : "steps"}
+            </>
+          )}
         </span>
       ) : (
         <>
