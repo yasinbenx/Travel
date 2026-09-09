@@ -48,3 +48,16 @@ export function saveGameState(state: GameState): void {
   }
 }
 
+/**
+ * Removes the saved game state, e.g. when the player navigates back to
+ * the start screen — without this, a reload would otherwise resurrect
+ * the game they just left.
+ */
+export function clearGameState(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Nothing to do if storage access itself fails.
+  }
+}
+

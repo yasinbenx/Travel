@@ -10,6 +10,7 @@ type GameBoardProps = {
   state: GameState;
   onGuess: (guess: string) => void;
   onRestart: () => void;
+  onHome: () => void;
 };
 
 type GuessFeedback = "correct" | "wrong" | null;
@@ -26,7 +27,7 @@ type GuessFeedback = "correct" | "wrong" | null;
  * result screen on a win are all handled by `AppShell`, which only
  * renders this component while the round is still in progress.
  */
-export function GameBoard({ state, onGuess, onRestart }: GameBoardProps) {
+export function GameBoard({ state, onGuess, onRestart, onHome }: GameBoardProps) {
   const [feedback, setFeedback] = useState<GuessFeedback>(null);
   const previousGuessCount = useRef(state.guesses.length);
 
@@ -50,7 +51,13 @@ export function GameBoard({ state, onGuess, onRestart }: GameBoardProps) {
 
   return (
     <div className={styles.app}>
-      <AppHeader start={state.start} end={state.end} difficulty={state.difficulty} onRestart={onRestart} />
+      <AppHeader
+        start={state.start}
+        end={state.end}
+        difficulty={state.difficulty}
+        onHome={onHome}
+        onRestart={onRestart}
+      />
 
       <main className={styles.mapArea}>
         <MapView start={state.start} target={state.end} guesses={state.guesses} isWon={state.isWon} />

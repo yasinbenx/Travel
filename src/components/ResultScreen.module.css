@@ -45,14 +45,20 @@
   justify-content: center;
 }
 
+.actions {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  gap: 0.5rem;
+}
+
 .playAgainButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  width: 100%;
-  max-width: 420px;
-  padding: 0.8rem 1.5rem;
+  flex: 2;
+  padding: 0.8rem 1.25rem;
   font: inherit;
   font-family: var(--heading);
   font-size: 0.95rem;
@@ -79,4 +85,42 @@
   background: var(--color-accent-active);
   transform: translateY(0) scale(1);
   box-shadow: var(--shadow-sm);
+}
+
+.changeDifficultyButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex: 1;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  font-family: var(--heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--surface-muted);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.changeDifficultyButton:hover {
+  background: var(--surface);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.changeDifficultyButton:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 380px) {
+  .changeDifficultyButton span {
+    display: none;
+  }
 }

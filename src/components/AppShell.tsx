@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { submitGuess, type Difficulty, type GameState } from "../game/gameEngine";
-import { loadGameState, saveGameState } from "../game/persistence";
+import { clearGameState, loadGameState, saveGameState } from "../game/persistence";
 import { createRandomGameState } from "../game/randomGameState";
 import { GameBoard } from "./GameBoard";
 import { ResultScreen } from "./ResultScreen";
@@ -42,13 +42,39 @@ export function AppShell() {
     }
   }
 
+  /**
+   * Drops the current round entirely and returns to the start screen —
+   * used by both the always-visible header "Home" button and the result
+   * screen's "Change difficulty" action. Clears localStorage too, so a
+   * reload doesn't resurrect the round the player just left.
+   */
+  function handleGoHome() {
+    clearGameState();
+    setGameState(null);
+    setPuzzleError(null);
+  }
+
   if (!gameState) {
     return <StartScreen onStart={handleNewGame} error={puzzleError} />;
   }
 
   if (gameState.isWon) {
-    return <ResultScreen state={gameState} onPlayAgain={() => handleNewGame()} />;
+    return (
+      <ResultScreen
+        state={gameState}
+        onPlayAgain={() => handleNewGame()}
+        onChangeDifficulty={handleGoHome}
+        onHome={handleGoHome}
+      />
+    );
   }
 
-  return <GameBoard state={gameState} onGuess={handleGuess} onRestart={() => handleNewGame()} />;
+  return (
+    <GameBoard
+      state={gameState}
+      onGuess={handleGuess}
+      onRestart={() => handleNewGame()}
+      onHome={handleGoHome}
+    />
+  );
 }

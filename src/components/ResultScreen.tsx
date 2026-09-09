@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import confetti from "canvas-confetti";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import type { GameState } from "../game/gameEngine";
 import { AppHeader } from "./AppHeader";
 import { MapView } from "./MapView";
@@ -10,6 +10,10 @@ import styles from "./ResultScreen.module.css";
 type ResultScreenProps = {
   state: GameState;
   onPlayAgain: () => void;
+  /** Returns to the start screen's difficulty picker, dropping this round. */
+  onChangeDifficulty: () => void;
+  /** Always-visible header action — same destination as `onChangeDifficulty`. */
+  onHome: () => void;
 };
 
 /**
@@ -19,7 +23,7 @@ type ResultScreenProps = {
  * path that was found, and a "Play again" button that starts a brand-new
  * random puzzle.
  */
-export function ResultScreen({ state, onPlayAgain }: ResultScreenProps) {
+export function ResultScreen({ state, onPlayAgain, onChangeDifficulty, onHome }: ResultScreenProps) {
   useEffect(() => {
     confetti({
       particleCount: 130,
@@ -32,7 +36,7 @@ export function ResultScreen({ state, onPlayAgain }: ResultScreenProps) {
 
   return (
     <div className={styles.app}>
-      <AppHeader start={state.start} end={state.end} difficulty={state.difficulty} />
+      <AppHeader start={state.start} end={state.end} difficulty={state.difficulty} onHome={onHome} />
 
       <div className={styles.summaryArea}>
         <ResultSummary state={state} />
@@ -43,10 +47,20 @@ export function ResultScreen({ state, onPlayAgain }: ResultScreenProps) {
       </main>
 
       <footer className={styles.footer}>
-        <button type="button" className={styles.playAgainButton} onClick={onPlayAgain}>
-          <RotateCcw size={16} strokeWidth={2.5} />
-          Play again
-        </button>
+        <div className={styles.actions}>
+          <button type="button" className={styles.playAgainButton} onClick={onPlayAgain}>
+            <RotateCcw size={16} strokeWidth={2.5} />
+            Play again
+          </button>
+          <button
+            type="button"
+            className={styles.changeDifficultyButton}
+            onClick={onChangeDifficulty}
+          >
+            <SlidersHorizontal size={15} strokeWidth={2.5} />
+            <span>Change difficulty</span>
+          </button>
+        </div>
       </footer>
     </div>
   );
