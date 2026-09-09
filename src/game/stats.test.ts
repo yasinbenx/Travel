@@ -9,7 +9,7 @@ function makeGame(overrides: Partial<GameState> = {}): GameState {
     start: "Germany",
     end: "Italy",
     optimalPath: ["Germany", "Austria", "Italy"],
-    guesses: [{ country: "Austria", quality: "gold", isNeighbor: true }],
+    guesses: [{ country: "Austria", quality: "gold", isProgress: true }],
     isWon: true,
     isGivenUp: false,
     ...overrides,
@@ -74,21 +74,24 @@ describe("computeStats", () => {
     expect(stats.averageStepsOverOptimal).toBe(1);
   });
 
-  it("counts a won game with extra steps as played but not perfect", () => {
+  it("counts a won game with extra (valid but unnecessary) steps as played but not perfect", () => {
     const games = {
       a: makeGame({
         optimalPath: ["Germany", "Austria", "Italy"], // 1 intermediate step
+        // Both Switzerland and Austria are real, equally-short ("gold")
+        // branches between Germany and Italy — guessing both instead of
+        // just the one actually needed still wins, but uses 2 steps
+        // against an optimal of 1.
         guesses: [
-          { country: "Poland", quality: "red", isNeighbor: true },
-          { country: "Czech Republic", quality: "orange", isNeighbor: true },
-          { country: "Austria", quality: "green", isNeighbor: true },
+          { country: "Switzerland", quality: "gold", isProgress: true },
+          { country: "Austria", quality: "gold", isProgress: true },
         ],
       }),
     };
     const stats = computeStats(games);
     expect(stats.totalPlayed).toBe(1);
     expect(stats.perfectSolves).toBe(0);
-    expect(stats.averageStepsOverOptimal).toBe(3);
+    expect(stats.averageStepsOverOptimal).toBe(2);
   });
 
   it("breaks totals down correctly per difficulty", () => {

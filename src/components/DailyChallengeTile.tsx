@@ -1,5 +1,5 @@
 import { Check, Flag, Play } from "lucide-react";
-import { DIFFICULTY_LABEL, getConfirmedChain, type Difficulty, type GameState } from "../game/gameEngine";
+import { DIFFICULTY_LABEL, getValidIntermediateCountries, type Difficulty, type GameState } from "../game/gameEngine";
 import styles from "./DailyChallengeTile.module.css";
 
 type DailyChallengeTileProps = {
@@ -31,7 +31,7 @@ const DIFFICULTY_HINT: Record<Difficulty, string> = {
 export function DailyChallengeTile({ difficulty, game, onClick }: DailyChallengeTileProps) {
   const isCompleted = (game?.isWon || game?.isGivenUp) ?? false;
   const isGivenUp = game?.isGivenUp ?? false;
-  const steps = game ? getConfirmedChain(game).length : 0;
+  const steps = game ? getValidIntermediateCountries(game).length : 0;
 
   return (
     <button

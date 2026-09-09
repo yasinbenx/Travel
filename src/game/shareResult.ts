@@ -1,5 +1,5 @@
 import { getDayNumber } from "./dateUtils";
-import { DIFFICULTY_LABEL, getConfirmedChain, type GameState, type GuessQuality } from "./gameEngine";
+import { DIFFICULTY_LABEL, getValidIntermediateCountries, type GameState, type GuessQuality } from "./gameEngine";
 
 const QUALITY_EMOJI: Record<GuessQuality, string> = {
   gold: "🟨",
@@ -31,7 +31,7 @@ export function buildShareText(state: GameState, currentStreak: number): string 
   const streakPart = currentStreak > 0 ? ` 🔥${currentStreak}` : "";
   const resultPart = state.isGivenUp
     ? "Gave up"
-    : `${getConfirmedChain(state).length}/${state.optimalPath.length - 2} steps`;
+    : `${getValidIntermediateCountries(state).length}/${state.optimalPath.length - 2} steps`;
 
   const headerLine =
     `BorderHop Day #${dayNumber} [${DIFFICULTY_LABEL[state.difficulty]}]${streakPart}` +

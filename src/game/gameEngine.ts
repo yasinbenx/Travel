@@ -8,8 +8,15 @@ export type Guess = {
   /** Canonical country name, or the raw trimmed input if it couldn't be resolved to one. */
   country: string;
   quality: GuessQuality;
-  /** Whether this guess is a real land-border neighbor of the country before it in the chain. */
-  isNeighbor: boolean;
+  /**
+   * True for "gold" or "green" guesses only — these count as valid
+   * intermediate countries when checking whether start and target are
+   * now connected through revealed countries (see
+   * {@link checkWinCondition}). "orange"/"red" guesses are still shown
+   * on the map and in the guess list, but never contribute to completing
+   * the route.
+   */
+  isProgress: boolean;
 };
 
 export type GameState = {
@@ -86,19 +93,14 @@ export function resolveCountryName(input: string): string | undefined {
 // ---------------------------------------------------------------------
 
 /**
- * The chain of countries that actually count as progress: every guess
- * that was a real land-border neighbor of the country before it, in
- * order. A guess that wasn't a neighbor at all (however far off) is
- * still shown on the map and in the guess list, but doesn't extend this
- * chain — the player keeps guessing from wherever it currently ends.
+ * Every country guessed so far that counts as a valid intermediate step
+ * (quality "gold" or "green"), in the order it was guessed. Order has no
+ * bearing on correctness — see {@link checkWinCondition} — this is
+ * purely the list used for step counts and to keep the autocomplete from
+ * suggesting an already-confirmed country again.
  */
-export function getConfirmedChain(state: GameState): string[] {
-  return state.guesses.filter((guess) => guess.isNeighbor).map((guess) => guess.country);
-}
-
-function getLastConfirmedCountry(state: GameState): string {
-  const chain = getConfirmedChain(state);
-  return chain.length > 0 ? chain[chain.length - 1] : state.start;
+export function getValidIntermediateCountries(state: GameState): string[] {
+  return state.guesses.filter((guess) => guess.isProgress).map((guess) => guess.country);
 }
 
 // ---------------------------------------------------------------------
@@ -106,67 +108,61 @@ function getLastConfirmedCountry(state: GameState): string {
 // ---------------------------------------------------------------------
 
 /**
- * Grades a single guess against the last confirmed country. The
- * isNeighbor check comes FIRST and is the only thing that can ever
- * produce "red":
+ * Grades a single guess `X` purely by how much of a detour it represents
+ * on the shortest possible start -> target route — independent of guess
+ * order, and independent of whether `X` borders any specific
+ * previously-guessed country:
  *
- * 1. Not a real, recognized country, or not a direct land-border
- *    neighbor of the last confirmed country AT ALL -> "red",
- *    `isNeighbor: false`, no distance computation needed. This is the
- *    ONLY way to get red — a completely unconnected guess (e.g. the USA
- *    on a Germany -> Morocco route), regardless of how far off it is.
- *    Doesn't extend the chain.
- * 2. A real neighbor: NEVER red, no matter how bad. Graded purely on
- *    this one step, by comparing the guess's own fresh BFS distance to
- *    the target against the theoretically best possible remaining
- *    distance after any optimal step from the last confirmed country
- *    (`BFS(lastConfirmed, target) - 1`) — a fresh graph computation each
- *    time, not a lookup against the exact position in the original
- *    reference path, so an equally-short alternative branch is never
- *    mistaken for a detour merely because it isn't the one specific
- *    country the reference path happened to pick next.
- *      - 0 extra -> "gold" (matches the reference path's next step) or
- *        "green" (an equally short alternative, e.g. Austria vs
- *        Switzerland).
- *      - 1+ extra -> "orange". For a real neighbor this is normally 1
- *        (never 2+, per the BFS triangle inequality), but a dead-end
- *        neighbor is still graded "orange", never "red" — red is
- *        reserved exclusively for non-neighbors (step 1).
+ *   distStartToX  = BFS distance(start, X)
+ *   distXToTarget = BFS distance(X, target)
+ *   totalViaX     = distStartToX + distXToTarget
+ *   optimalTotal  = BFS distance(start, target)
+ *   detour        = totalViaX - optimalTotal
+ *
+ * - detour == 0 -> "gold": X lies on *some* shortest start -> target
+ *   route (there can be several equally-short branches, e.g. Austria vs
+ *   Switzerland between Germany and Italy — both are gold).
+ * - detour == 1 -> "green": a small, one-country detour off the
+ *   shortest route.
+ * - detour 2-3 -> "orange": a noticeable but survivable detour.
+ * - detour >= 4, or X isn't reachable from start or target at all
+ *   (no land connection) -> "red" ("big detour" / wrong direction
+ *   entirely, e.g. the USA on a Germany -> Morocco route).
+ *
+ * Unrecognized input is also "red". Only "gold"/"green" ever count as
+ * progress (`isProgress: true`) toward completing the route.
  */
 export function evaluateGuessQuality(state: GameState, guessInput: string): Guess {
   const resolved = resolveCountryName(guessInput);
   const country = resolved ?? guessInput.trim();
 
   if (!resolved) {
-    return { country, quality: "red", isNeighbor: false };
+    return { country, quality: "red", isProgress: false };
   }
 
-  const lastConfirmed = getLastConfirmedCountry(state);
-  const isNeighbor = (countryAdjacency[lastConfirmed] ?? []).includes(resolved);
+  const distancesFromStart = computeDistancesFrom(state.start);
+  const distancesFromTarget = computeDistancesFrom(state.end);
 
-  if (!isNeighbor) {
-    return { country: resolved, quality: "red", isNeighbor: false };
+  const distStartToX = distancesFromStart.get(resolved);
+  const distXToTarget = distancesFromTarget.get(resolved);
+  const optimalTotal = distancesFromStart.get(state.end);
+
+  if (distStartToX === undefined || distXToTarget === undefined || optimalTotal === undefined) {
+    // No land connection between start/target and this country at all.
+    return { country: resolved, quality: "red", isProgress: false };
   }
 
-  const distancesToTarget = computeDistancesFrom(state.end);
-  const distanceFromGuess = distancesToTarget.get(resolved) ?? Number.POSITIVE_INFINITY;
-  const distanceFromLastConfirmed = distancesToTarget.get(lastConfirmed) ?? Number.POSITIVE_INFINITY;
-  const bestPossibleRemainingDistance = distanceFromLastConfirmed - 1;
-  const detour = distanceFromGuess - bestPossibleRemainingDistance;
+  const detour = distStartToX + distXToTarget - optimalTotal;
+  const quality = gradeDetour(detour);
 
-  if (detour <= 0) {
-    const lastIndex = state.optimalPath.indexOf(lastConfirmed);
-    const referenceNextStep = lastIndex >= 0 ? state.optimalPath[lastIndex + 1] : undefined;
-    return {
-      country: resolved,
-      quality: resolved === referenceNextStep ? "gold" : "green",
-      isNeighbor: true,
-    };
-  }
+  return { country: resolved, quality, isProgress: quality === "gold" || quality === "green" };
+}
 
-  // Any real neighbor with a detour, however large, is "orange" — never
-  // "red". Red is reserved exclusively for the non-neighbor case above.
-  return { country: resolved, quality: "orange", isNeighbor: true };
+function gradeDetour(detour: number): GuessQuality {
+  if (detour <= 0) return "gold";
+  if (detour === 1) return "green";
+  if (detour <= 3) return "orange";
+  return "red";
 }
 
 // ---------------------------------------------------------------------
@@ -174,16 +170,44 @@ export function evaluateGuessQuality(state: GameState, guessInput: string): Gues
 // ---------------------------------------------------------------------
 
 /**
+ * True once start and target are connected using only real land
+ * borders, treating every "gold"/"green" guess made so far as an
+ * available stepping stone — regardless of the order they were guessed
+ * in. "orange"/"red" guesses are never usable as a stepping stone.
+ *
+ * E.g. for Togo -> Mauritania (optimal route Togo -> Burkina Faso -> Mali
+ * -> Mauritania), guessing "Mali" alone doesn't win yet (Togo can't reach
+ * Mali without Burkina Faso in between); guessing "Burkina Faso" too
+ * completes the chain and wins, in either guessing order.
+ */
+function checkWinCondition(state: GameState): boolean {
+  const validCountries = new Set(getValidIntermediateCountries(state));
+
+  const reachable = new Set<string>([state.start]);
+  const queue = [state.start];
+  for (let i = 0; i < queue.length; i++) {
+    const current = queue[i];
+    for (const neighbor of countryAdjacency[current] ?? []) {
+      if (reachable.has(neighbor)) continue;
+      if (neighbor !== state.end && !validCountries.has(neighbor)) continue;
+      reachable.add(neighbor);
+      queue.push(neighbor);
+    }
+  }
+
+  return reachable.has(state.end);
+}
+
+/**
  * Processes a guess: every guess — even a wildly wrong one — is recorded
  * and graded (see {@link evaluateGuessQuality}), shown on the map and in
- * the guess list. Only guesses that are real neighbors of the last
- * confirmed country extend the confirmed chain and can win the round; a
- * non-neighbor guess is simply logged without changing anything else.
+ * the guess list. The round is won the moment start and target are
+ * connected through the full set of "gold"/"green" guesses made so far
+ * (see {@link checkWinCondition}) — independent of the order they were
+ * made in, and without ever requiring the target itself to be guessed.
  *
- * A confirmed guess that itself borders the target country (or is the
- * target itself) wins the game.
- *
- * If the game is already won, the state is returned unchanged.
+ * If the game is already won or given up, the state is returned
+ * unchanged.
  */
 export function submitGuess(state: GameState, guessInput: string): GameState {
   if (state.isWon || state.isGivenUp) {
@@ -191,16 +215,9 @@ export function submitGuess(state: GameState, guessInput: string): GameState {
   }
 
   const guess = evaluateGuessQuality(state, guessInput);
-  const guesses = [...state.guesses, guess];
+  const updated = { ...state, guesses: [...state.guesses, guess] };
 
-  if (!guess.isNeighbor) {
-    return { ...state, guesses };
-  }
-
-  const neighborsOfGuess = countryAdjacency[guess.country] ?? [];
-  const isWon = guess.country === state.end || neighborsOfGuess.includes(state.end);
-
-  return { ...state, guesses, isWon };
+  return { ...updated, isWon: checkWinCondition(updated) };
 }
 
 /**

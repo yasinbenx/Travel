@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getConfirmedChain, type GameState } from "../game/gameEngine";
+import { getValidIntermediateCountries, type GameState } from "../game/gameEngine";
 import { AppHeader } from "./AppHeader";
 import { GuessInput } from "./GuessInput";
 import { GuessList } from "./GuessList";
@@ -41,7 +41,7 @@ export function GameBoard({ state, onGuess, onGiveUp, onHome, onOpenStats }: Gam
   useEffect(() => {
     if (state.guesses.length > previousGuessCount.current) {
       const lastGuess = state.guesses[state.guesses.length - 1];
-      setFeedback(lastGuess.isNeighbor ? "correct" : "wrong");
+      setFeedback(lastGuess.isProgress ? "correct" : "wrong");
     }
     previousGuessCount.current = state.guesses.length;
   }, [state.guesses]);
@@ -52,9 +52,9 @@ export function GameBoard({ state, onGuess, onGiveUp, onHome, onOpenStats }: Gam
     return () => clearTimeout(timeout);
   }, [feedback]);
 
-  const confirmedChain = getConfirmedChain(state);
+  const validCountries = getValidIntermediateCountries(state);
   const intermediateStepsInOptimalPath = state.optimalPath.length - 2;
-  const excludeNames = [state.start, ...confirmedChain];
+  const excludeNames = [state.start, ...validCountries];
 
   return (
     <div className={styles.app}>
@@ -71,7 +71,7 @@ export function GameBoard({ state, onGuess, onGiveUp, onHome, onOpenStats }: Gam
 
         <div className={`${styles.overlay} ${styles.progressOverlay}`}>
           <p className={styles.stepCounter}>
-            Step {confirmedChain.length}
+            Step {validCountries.length}
             <span className={styles.stepOptimal}>optimal: {intermediateStepsInOptimalPath}</span>
           </p>
           <GuessList state={state} />

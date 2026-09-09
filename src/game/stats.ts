@@ -1,4 +1,4 @@
-import { getConfirmedChain, type Difficulty, type GameState } from "./gameEngine";
+import { getValidIntermediateCountries, type Difficulty, type GameState } from "./gameEngine";
 
 export type Stats = {
   totalPlayed: number;
@@ -32,7 +32,7 @@ export function computeStats(games: Record<string, GameState>): Stats {
   }
 
   for (const game of won) {
-    const steps = getConfirmedChain(game).length;
+    const steps = getValidIntermediateCountries(game).length;
     const optimalSteps = game.optimalPath.length - 2;
     if (steps <= optimalSteps) {
       perfectSolvesByDifficulty[game.difficulty]++;

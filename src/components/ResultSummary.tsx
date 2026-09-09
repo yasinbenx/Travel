@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Check, Flag, Link2, PartyPopper, Share2, Trophy, X } from "lucide-react";
-import { getConfirmedChain, type GameState, type Guess } from "../game/gameEngine";
+import { getValidIntermediateCountries, type GameState, type Guess } from "../game/gameEngine";
 import { buildEmojiGrid, buildShareText } from "../game/shareResult";
 import { MapView } from "./MapView";
 import { StreakBadge } from "./StreakBadge";
@@ -55,7 +55,7 @@ export function ResultSummary({ state, currentStreak }: ResultSummaryProps) {
     return null;
   }
 
-  const steps = getConfirmedChain(state).length;
+  const steps = getValidIntermediateCountries(state).length;
   const optimalSteps = state.optimalPath.length - 2;
   const tookOptimalRoute = steps <= optimalSteps;
 
@@ -65,7 +65,7 @@ export function ResultSummary({ state, currentStreak }: ResultSummaryProps) {
   const optimalPathGuesses: Guess[] = state.optimalPath.slice(1, -1).map((country) => ({
     country,
     quality: "green",
-    isNeighbor: true,
+    isProgress: true,
   }));
 
   async function handleShare() {

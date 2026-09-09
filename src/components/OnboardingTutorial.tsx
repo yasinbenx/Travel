@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getConfirmedChain, submitGuess, type GameState } from "../game/gameEngine";
+import { getValidIntermediateCountries, submitGuess, type GameState } from "../game/gameEngine";
 import { GuessInput } from "./GuessInput";
 import { MapView } from "./MapView";
 import styles from "./OnboardingTutorial.module.css";
@@ -80,7 +80,7 @@ export function OnboardingTutorial({ onDone }: OnboardingTutorialProps) {
           <>
             <GuessInput
               onGuess={handleGuess}
-              excludeNames={[state.start, ...getConfirmedChain(state)]}
+              excludeNames={[state.start, ...getValidIntermediateCountries(state)]}
             />
             {wrongGuessMade && (
               <p className={styles.hint}>
