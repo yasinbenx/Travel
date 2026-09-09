@@ -36,8 +36,8 @@
   font: inherit;
   font-family: var(--heading);
   font-weight: 700;
-  color: var(--color-primary);
-  background: var(--color-accent);
+  color: var(--text-inverse);
+  background: var(--color-primary);
   border: none;
   border-radius: 999px;
   box-shadow: var(--shadow-sm);
@@ -45,5 +45,5 @@
 }
 
 .button:hover {
-  background: var(--color-accent-hover);
+  background: var(--color-primary-hover);
 }

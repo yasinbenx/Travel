@@ -72,14 +72,19 @@
   font-size: 2.85rem;
   font-weight: 700;
   letter-spacing: -0.03em;
-  color: var(--color-primary);
+  /* Sits directly on the raw gradient (no card behind it), so it needs
+     white text plus a soft shadow for guaranteed contrast — see the
+     dark scrim baked into --gradient-hero for the numeric verification. */
+  color: var(--text-inverse);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
 
 .subtitle {
   margin: 0 0 0.75rem;
   font-size: 1rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.92);
   max-width: 30ch;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
 }
 
 .error {
@@ -150,7 +155,7 @@
   font-size: 0.65rem;
   font-weight: 700;
   font-family: var(--heading);
-  color: #fff;
+  color: var(--text-inverse);
   background: var(--color-primary);
   border-radius: 999px;
 }

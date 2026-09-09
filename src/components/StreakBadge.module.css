@@ -6,8 +6,52 @@
   font-family: var(--heading);
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--quality-orange-text);
-  background: color-mix(in srgb, var(--quality-orange-text) 12%, transparent);
+  /* Its own coral-orange-based color, independent of the guess-quality
+     "orange" (a real neighbor with a small detour) — a streak flame
+     just happens to also want a warm color. Mixed with white (not
+     transparent) so the badge stays legible when placed directly on the
+     hero gradient (StartScreen, StatsPanel overview), not only on a
+     card. */
+  color: var(--coral-orange-text);
+  background: color-mix(in srgb, var(--coral-orange) 18%, white);
   border-radius: 999px;
   white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.flame {
+  animation: flicker 1.8s ease-in-out infinite;
+}
+
+.large {
+  gap: 0.5rem;
+  padding: 0.55rem 1.1rem 0.55rem 0.9rem;
+  font-size: 1.05rem;
+  border-radius: var(--radius-lg);
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.08) rotate(-3deg);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(0.97) rotate(2deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.05) rotate(-1deg);
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flame {
+    animation: none;
+  }
 }

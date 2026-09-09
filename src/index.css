@@ -1,18 +1,41 @@
 :root {
+  /* "Coral Reef Pop" palette — raw hues. Backgrounds, buttons, headers,
+     cards and badges draw from these; the guess-quality colors further
+     below are a completely separate system and must never mix with
+     these. */
+  --coral-orange: #ff9e00;
+  --coral-pink: #ff0054;
+  --coral-berry: #9e0059;
+  --coral-violet: #390099;
+  --coral-sky: #00b4d8;
+
+  /* Same-hue derivatives of --coral-sky/--coral-orange, darkened just
+     enough to clear WCAG AA (4.5:1) as small text on a light surface —
+     the raw hues are too light/saturated to use as text color directly
+     (e.g. white-on-coral-sky is only ~2.5:1). Backgrounds, borders, and
+     icons should still use the raw hues above. */
+  --coral-sky-text: #006a82;
+  --coral-orange-text: #8a5200;
+
   /* Brand */
-  --color-primary: #14213d;
-  --color-primary-hover: #1f3358;
-  --color-primary-active: #0e1830;
-  --color-accent: #f0a93e;
-  --color-accent-hover: #e0982a;
-  --color-accent-active: #cb8a24;
+  --color-primary: var(--coral-violet);
+  --color-primary-hover: #4b17b8;
+  --color-primary-active: #2a0070;
+  --color-accent: var(--coral-sky);
+  --color-accent-hover: #00c6ef;
+  --color-accent-active: var(--coral-sky-text);
+
+  /* White text is used on saturated/dark brand surfaces (primary
+     buttons, the hero gradient, badges filled with a raw coral hue);
+     --text is for dark-on-light surfaces (cards, the white header). */
+  --text-inverse: #ffffff;
 
   /* Neutrals */
   --bg: #f4f6fa;
   --surface: #ffffff;
   --surface-muted: #eceef3;
   --border: #dde2ea;
-  --text: #14213d;
+  --text: #1a1a2e;
   --text-muted: #62697d;
 
   /* Feedback */
@@ -25,11 +48,21 @@
   --wrong-border: #f0c7be;
   --wrong-text: #b0402a;
 
-  /* Guess quality (map fills + guess list text) */
+  /* Guess quality (map fills + guess list text) — UNCHANGED by the Coral
+     Reef Pop palette; kept visually distinct from it on purpose. The
+     "-fill" variants mirror MapView's hardcoded QUALITY_MAP_COLORS
+     exactly (added here so the stats page's quality-distribution ring
+     chart can reuse the same, already-familiar hues via CSS instead of
+     duplicating hex literals). */
   --quality-gold-text: #8a6d0f;
   --quality-green-text: #1e7a4d;
   --quality-orange-text: #a35420;
   --quality-red-text: #b0402a;
+
+  --quality-gold-fill: #caa118;
+  --quality-green-fill: #2f9e6e;
+  --quality-orange-fill: #d97a34;
+  --quality-red-fill: #c0392b;
 
   /* Map */
   --map-bg: #d7e3f0;
@@ -49,15 +82,20 @@
   --radius-md: 12px;
   --radius-lg: 18px;
 
-  /* Soft brand-colored backdrop for the start/result screens */
+  /* "Coral Reef Pop" backdrop for the start/result/stats screens: a
+     flat, uniform dark scrim layered UNDER the vivid coral gradient (not
+     as a spot-varying vignette) so any white text placed anywhere on it
+     clears WCAG AA (~5:1+) no matter which hue happens to sit behind it —
+     verified against all three gradient stops. */
   --gradient-hero:
-    radial-gradient(1100px circle at 12% -15%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 55%),
-    radial-gradient(900px circle at 105% 8%, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 60%),
-    linear-gradient(180deg, #eef2f9 0%, var(--bg) 100%);
+    linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+    linear-gradient(135deg, var(--coral-orange) 0%, var(--coral-pink) 55%, var(--coral-berry) 100%);
 
-  /* Glassmorphism: semi-transparent, blurred card surface over the gradient */
-  --glass-bg: color-mix(in srgb, var(--surface) 78%, transparent);
-  --glass-border: color-mix(in srgb, var(--border) 60%, transparent);
+  /* Glassmorphism: semi-transparent, blurred card surface over the
+     gradient. Bumped up from the old 78% so cards read clearly as a
+     distinct light surface against the punchier coral backdrop. */
+  --glass-bg: color-mix(in srgb, var(--surface) 85%, transparent);
+  --glass-border: color-mix(in srgb, var(--surface) 45%, transparent);
   --glass-blur: blur(16px);
 
   --sans: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;

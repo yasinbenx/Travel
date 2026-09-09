@@ -1,0 +1,87 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.row {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 1;
+}
+
+.dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  border: 1.5px solid var(--border);
+}
+
+.dayLabel {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.perfect {
+  background: var(--quality-gold-fill);
+  border-color: var(--quality-gold-fill);
+}
+
+.good {
+  background: var(--quality-green-fill);
+  border-color: var(--quality-green-fill);
+}
+
+.gaveUp {
+  background: var(--quality-red-fill);
+  border-color: var(--quality-red-fill);
+}
+
+.none {
+  background: var(--surface-muted);
+  border-color: var(--border);
+}
+
+.legend {
+  margin: 0;
+  padding: 0.6rem 0 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.legendDot {
+  width: 0.55rem;
+  height: 0.55rem;
+}
+
+@media (max-width: 380px) {
+  .dayLabel {
+    display: none;
+  }
+}

@@ -10,17 +10,24 @@
   white-space: nowrap;
 }
 
+/*
+ * Deliberately independent of the guess-quality colors (gold/green/
+ * orange/red) even though "easy/medium/hard" might tempt a similar
+ * green->orange->red ramp — that palette is reserved for guess quality
+ * only. These three instead ramp through the Coral Reef Pop palette:
+ * sky -> violet -> berry.
+ */
 .easy {
-  color: var(--correct-text);
-  background: var(--correct-bg);
+  color: var(--coral-sky-text);
+  background: color-mix(in srgb, var(--coral-sky) 16%, white);
 }
 
 .medium {
-  color: var(--quality-orange-text);
-  background: color-mix(in srgb, var(--quality-orange-text) 14%, transparent);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--coral-violet) 12%, white);
 }
 
 .hard {
-  color: var(--wrong-text);
-  background: var(--wrong-bg);
+  color: var(--coral-berry);
+  background: color-mix(in srgb, var(--coral-berry) 14%, white);
 }

@@ -29,7 +29,7 @@ export function ResultScreen({ state, currentStreak, onHome, onOpenStats }: Resu
       spread: 75,
       startVelocity: 45,
       origin: { y: 0.35 },
-      colors: ["#14213d", "#f0a93e", "#2f9e6e"],
+      colors: ["#390099", "#00B4D8", "#FF9E00", "#FF0054"],
     });
   }, [state.isGivenUp]);
 

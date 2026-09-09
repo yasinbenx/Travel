@@ -77,7 +77,7 @@
 
 .giveUpLink:hover {
   opacity: 1;
-  color: var(--color-danger, #c0392b);
+  color: var(--wrong-text);
 }
 
 .footer {

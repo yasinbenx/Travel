@@ -1,4 +1,11 @@
-import { getValidIntermediateCountries, type Difficulty, type GameState } from "./gameEngine";
+import { getPreviousDateString } from "./dateUtils";
+import {
+  getValidIntermediateCountries,
+  type Difficulty,
+  type GameState,
+  type GuessQuality,
+} from "./gameEngine";
+import { gameKey } from "./persistence";
 
 export type Stats = {
   totalPlayed: number;
@@ -11,6 +18,11 @@ export type Stats = {
 
 function emptyByDifficulty(): Record<Difficulty, number> {
   return { easy: 0, medium: 0, hard: 0 };
+}
+
+/** A won game whose step count matched (or beat) the optimal route's length. */
+function isPerfectSolve(game: GameState): boolean {
+  return getValidIntermediateCountries(game).length <= game.optimalPath.length - 2;
 }
 
 /**
@@ -34,7 +46,7 @@ export function computeStats(games: Record<string, GameState>): Stats {
   for (const game of won) {
     const steps = getValidIntermediateCountries(game).length;
     const optimalSteps = game.optimalPath.length - 2;
-    if (steps <= optimalSteps) {
+    if (isPerfectSolve(game)) {
       perfectSolvesByDifficulty[game.difficulty]++;
     }
     ratioSum += optimalSteps > 0 ? steps / optimalSteps : 1;
@@ -52,4 +64,63 @@ export function computeStats(games: Record<string, GameState>): Stats {
     perfectSolvesByDifficulty,
     averageStepsOverOptimal: won.length > 0 ? ratioSum / won.length : null,
   };
+}
+
+export type QualityDistribution = Record<GuessQuality, number>;
+
+/**
+ * Counts every guess ever made, across every stored game, by its
+ * quality — the "gold/green/orange/red" breakdown shown as a small ring
+ * chart on the stats page. Includes guesses from in-progress rounds too,
+ * not just finished ones, since it's a lifetime tally of guessing
+ * behavior rather than a per-round outcome metric.
+ */
+export function computeQualityDistribution(games: Record<string, GameState>): QualityDistribution {
+  const distribution: QualityDistribution = { gold: 0, green: 0, orange: 0, red: 0 };
+  for (const game of Object.values(games)) {
+    for (const guess of game.guesses) {
+      distribution[guess.quality]++;
+    }
+  }
+  return distribution;
+}
+
+export type DayStatus = "perfect" | "good" | "gaveUp" | "none";
+
+/**
+ * One calendar day's best result across all three difficulties, for the
+ * stats page's mini history calendar — a single representative dot per
+ * day rather than one per difficulty, ranked best-to-worst: a perfect
+ * solve beats a non-perfect win, which beats a give-up, which beats an
+ * untouched day.
+ */
+function computeDayStatus(games: Record<string, GameState>, date: string): DayStatus {
+  const difficulties: Difficulty[] = ["easy", "medium", "hard"];
+  const dayGames = difficulties.map((difficulty) => games[gameKey(date, difficulty)]).filter(Boolean);
+
+  if (dayGames.some((game) => game.isWon && isPerfectSolve(game))) return "perfect";
+  if (dayGames.some((game) => game.isWon)) return "good";
+  if (dayGames.some((game) => game.isGivenUp)) return "gaveUp";
+  return "none";
+}
+
+export type DayHistoryEntry = { date: string; status: DayStatus };
+
+/**
+ * The last `days` calendar days (oldest first, ending at `today`) with
+ * each day's best result — powers the stats page's "History" mini
+ * calendar strip.
+ */
+export function computeHistory(
+  games: Record<string, GameState>,
+  today: string,
+  days = 10,
+): DayHistoryEntry[] {
+  const entries: DayHistoryEntry[] = [];
+  let date = today;
+  for (let i = 0; i < days; i++) {
+    entries.unshift({ date, status: computeDayStatus(games, date) });
+    date = getPreviousDateString(date);
+  }
+  return entries;
 }
