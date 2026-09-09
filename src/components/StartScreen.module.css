@@ -9,6 +9,32 @@
   animation: screenEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.statsButton {
+  position: absolute;
+  z-index: 2;
+  top: 1rem;
+  right: 1rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.statsButton:hover {
+  background: var(--surface);
+  transform: translateY(-2px);
+}
+
 @keyframes screenEnter {
   from {
     opacity: 0;
@@ -67,37 +93,11 @@
   border-radius: var(--radius-sm);
 }
 
-.playButton {
-  display: inline-flex;
-  align-items: center;
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
-  padding: 0.9rem 2.5rem;
-  font: inherit;
-  font-family: var(--heading);
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--color-primary);
-  background: var(--color-accent);
-  border: none;
-  border-radius: 999px;
-  box-shadow: var(--shadow-md);
-  cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-.playButton:hover {
-  background: var(--color-accent-hover);
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: var(--shadow-lg);
-}
-
-.playButton:active {
-  background: var(--color-accent-active);
-  transform: translateY(0) scale(1);
-  box-shadow: var(--shadow-sm);
+  width: 100%;
 }
 
 .steps {

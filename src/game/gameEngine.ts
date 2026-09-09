@@ -13,12 +13,14 @@ export type Guess = {
 };
 
 export type GameState = {
+  /** Calendar date ("YYYY-MM-DD", browser-local) this daily puzzle belongs to. */
+  date: string;
+  difficulty: Difficulty;
   start: string;
   end: string;
   optimalPath: string[];
   guesses: Guess[];
   isWon: boolean;
-  difficulty: Difficulty;
 };
 
 export type Difficulty = "easy" | "medium" | "hard";
@@ -200,28 +202,51 @@ export function submitGuess(state: GameState, guessInput: string): GameState {
 }
 
 // ---------------------------------------------------------------------
-// Random puzzle generation
+// Daily puzzle generation
 // ---------------------------------------------------------------------
 
+/** Simple string hash (32-bit) used to turn a seed string into a PRNG seed. */
+function hashSeed(seed: string): number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (Math.imul(hash, 31) + seed.charCodeAt(i)) | 0;
+  }
+  return hash >>> 0;
+}
+
+/** Deterministic PRNG (mulberry32); returns numbers in [0, 1). */
+function mulberry32(seed: number): () => number {
+  let state = seed;
+  return function next() {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pairKey(pair: { start: string; end: string }): string {
+  return [pair.start, pair.end].sort().join("::");
+}
+
 /**
- * Picks a random country pair whose shortest land route has an
- * intermediate-country count (`optimalPath.length - 2`, not counting the
- * start and target themselves) within the given {@link Difficulty}'s
- * range. Called fresh on every "Play"/"Play again" click — there is no
- * daily seed, every round is a new random pair.
+ * Deterministically picks a country pair for `seed` whose shortest land
+ * route has an intermediate-country count within `range`, skipping any
+ * pair already in `excludePairKeys` (see {@link generateDailyPuzzleSet}).
  */
-export function generateRandomPuzzle(difficulty: Difficulty = "medium"): {
-  start: string;
-  end: string;
-} {
-  const { min, max } = DIFFICULTY_INTERMEDIATE_STEPS[difficulty];
-  const countries = Object.keys(countryAdjacency);
+function generateDeterministicPuzzle(
+  seed: string,
+  range: { min: number; max: number },
+  excludePairKeys: Set<string>,
+): { start: string; end: string } {
+  const countries = Object.keys(countryAdjacency).sort();
+  const rng = mulberry32(hashSeed(seed));
   const n = countries.length;
-  const maxAttempts = n * n;
+  const maxAttempts = n * n * 4;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const startIndex = Math.floor(Math.random() * n);
-    const endIndex = Math.floor(Math.random() * n);
+    const startIndex = Math.floor(rng() * n);
+    const endIndex = Math.floor(rng() * n);
     if (startIndex === endIndex) continue;
 
     const start = countries[startIndex];
@@ -230,10 +255,49 @@ export function generateRandomPuzzle(difficulty: Difficulty = "medium"): {
     if (path.length === 0) continue; // no land connection (e.g. islands)
 
     const intermediateSteps = path.length - 2;
-    if (intermediateSteps >= min && intermediateSteps <= max) {
-      return { start, end };
-    }
+    if (intermediateSteps < range.min || intermediateSteps > range.max) continue;
+
+    const pair = { start, end };
+    if (excludePairKeys.has(pairKey(pair))) continue;
+    return pair;
   }
 
-  throw new Error(`Could not find a suitable country pair for a new "${difficulty}" puzzle`);
+  throw new Error(`Could not find a suitable country pair for seed "${seed}"`);
+}
+
+/**
+ * Generates all three of `date`'s daily puzzles (easy/medium/hard) at
+ * once, guaranteeing the three country pairs are mutually distinct —
+ * each difficulty is seeded from `${date}:${difficulty}`, and every
+ * later difficulty in the easy -> medium -> hard order excludes the
+ * pairs already picked for that same date.
+ */
+export function generateDailyPuzzleSet(date: string): Record<Difficulty, { start: string; end: string }> {
+  const usedPairKeys = new Set<string>();
+  const result = {} as Record<Difficulty, { start: string; end: string }>;
+
+  for (const difficulty of ["easy", "medium", "hard"] as const) {
+    const pair = generateDeterministicPuzzle(
+      `${date}:${difficulty}`,
+      DIFFICULTY_INTERMEDIATE_STEPS[difficulty],
+      usedPairKeys,
+    );
+    result[difficulty] = pair;
+    usedPairKeys.add(pairKey(pair));
+  }
+
+  return result;
+}
+
+/**
+ * The single country pair for `date`'s daily puzzle at `difficulty` —
+ * deterministic (same input always yields the same pair), so every
+ * player sees the identical puzzle for a given calendar date and
+ * difficulty, with no daily seed re-roll on repeat visits.
+ */
+export function generateDailyPuzzle(
+  date: string,
+  difficulty: Difficulty,
+): { start: string; end: string } {
+  return generateDailyPuzzleSet(date)[difficulty];
 }

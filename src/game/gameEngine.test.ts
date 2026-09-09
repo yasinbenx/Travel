@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { findShortestPath } from "../lib/findShortestPath";
 import {
   evaluateGuessQuality,
-  generateRandomPuzzle,
+  generateDailyPuzzle,
+  generateDailyPuzzleSet,
   getConfirmedChain,
   resolveCountryName,
   submitGuess,
@@ -11,6 +12,7 @@ import {
 
 function makeState(overrides: Partial<GameState> = {}): GameState {
   return {
+    date: "2026-01-01",
     start: "Germany",
     end: "Italy",
     optimalPath: ["Germany", "Austria", "Italy"],
@@ -289,29 +291,22 @@ describe("evaluateGuessQuality", () => {
   });
 });
 
-describe("generateRandomPuzzle", () => {
-  it("defaults to medium (4-6 intermediate steps) when no difficulty is given", () => {
-    for (let i = 0; i < 20; i++) {
-      const { start, end } = generateRandomPuzzle();
-      const intermediateSteps = findShortestPath(start, end).length - 2;
-      expect(intermediateSteps).toBeGreaterThanOrEqual(4);
-      expect(intermediateSteps).toBeLessThanOrEqual(6);
-    }
-  });
-
+describe("generateDailyPuzzle / generateDailyPuzzleSet", () => {
   const ranges: Record<"easy" | "medium" | "hard", { min: number; max: number }> = {
     easy: { min: 2, max: 3 },
     medium: { min: 4, max: 6 },
     hard: { min: 7, max: 10 },
   };
 
+  const sampleDates = ["2026-01-01", "2026-03-15", "2026-07-04", "2026-12-25", "2027-02-28"];
+
   for (const [difficulty, { min, max }] of Object.entries(ranges) as [
     "easy" | "medium" | "hard",
     { min: number; max: number },
   ][]) {
-    it(`"${difficulty}" returns a valid country pair with ${min}-${max} intermediate steps, run repeatedly`, () => {
-      for (let i = 0; i < 20; i++) {
-        const { start, end } = generateRandomPuzzle(difficulty);
+    it(`"${difficulty}" returns a valid country pair with ${min}-${max} intermediate steps, across several dates`, () => {
+      for (const date of sampleDates) {
+        const { start, end } = generateDailyPuzzle(date, difficulty);
         expect(start).not.toBe(end);
 
         const path = findShortestPath(start, end);
@@ -326,14 +321,38 @@ describe("generateRandomPuzzle", () => {
     });
   }
 
-  it("is random rather than fixed (varies across calls)", () => {
-    const pairs = new Set<string>();
-    for (let i = 0; i < 20; i++) {
-      const { start, end } = generateRandomPuzzle();
-      pairs.add(`${start}->${end}`);
+  it("is deterministic: the same date and difficulty always returns the same pair", () => {
+    for (const date of sampleDates) {
+      const first = generateDailyPuzzle(date, "medium");
+      const second = generateDailyPuzzle(date, "medium");
+      expect(second).toEqual(first);
     }
-    // With 20 random draws from ~200 countries, seeing more than one
-    // distinct pair confirms this isn't deterministic/fixed.
+  });
+
+  it("varies across different dates (not a fixed pair)", () => {
+    const pairs = new Set(
+      sampleDates.map((date) => {
+        const { start, end } = generateDailyPuzzle(date, "medium");
+        return `${start}->${end}`;
+      }),
+    );
     expect(pairs.size).toBeGreaterThan(1);
+  });
+
+  it("gives each of the three difficulties a mutually distinct country pair on the same date", () => {
+    for (const date of sampleDates) {
+      const set = generateDailyPuzzleSet(date);
+      const keys = (["easy", "medium", "hard"] as const).map((difficulty) => {
+        const { start, end } = set[difficulty];
+        return [start, end].sort().join("::");
+      });
+      expect(new Set(keys).size).toBe(3);
+    }
+  });
+
+  it("generateDailyPuzzle for a single difficulty matches the value from the full set", () => {
+    const date = "2026-05-17";
+    const set = generateDailyPuzzleSet(date);
+    expect(generateDailyPuzzle(date, "hard")).toEqual(set.hard);
   });
 });

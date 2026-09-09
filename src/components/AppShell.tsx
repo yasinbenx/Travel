@@ -1,80 +1,135 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+import { createDailyGameState } from "../game/dailyGameState";
+import { getTodayDateString } from "../game/dateUtils";
 import { submitGuess, type Difficulty, type GameState } from "../game/gameEngine";
-import { clearGameState, loadGameState, saveGameState } from "../game/persistence";
-import { createRandomGameState } from "../game/randomGameState";
+import { gameKey, hasSeenTutorial, loadAllGames, markTutorialSeen, saveGame } from "../game/persistence";
+import { loadStreak, recordDailyCompletion, type StreakState } from "../game/streak";
 import { GameBoard } from "./GameBoard";
+import { OnboardingTutorial } from "./OnboardingTutorial";
 import { ResultScreen } from "./ResultScreen";
 import { StartScreen } from "./StartScreen";
+import { StatsPanel } from "./StatsPanel";
+
+type Selection = { difficulty: Difficulty } | null;
 
 /**
- * Top-level component: loads any in-progress/finished game from
- * localStorage (if any) and switches between three views based on that
- * state, purely derived on every render — no extra "phase" state to keep
- * in sync:
- * - No saved state yet -> start screen with a "Play" button. Clicking it
- *   generates a brand-new random puzzle (there is no daily puzzle).
- * - Saved state exists and is already won -> result screen (works
- *   identically right after winning and after a reload, since it's read
- *   straight off `gameState.isWon`).
- * - Otherwise -> the game board, resuming any in-progress guesses.
+ * Top-level component. BorderHop has exactly three puzzles available at
+ * any time — today's easy/medium/hard daily challenges, the same for
+ * every player, each playable exactly once per calendar day:
+ * - `games` holds every daily puzzle ever played (in progress or
+ *   finished), keyed by `${date}:${difficulty}` and persisted to
+ *   localStorage on every guess, so nothing is ever lost and a finished
+ *   puzzle can never be started over as "new".
+ * - `selection` is which of today's three challenges the player is
+ *   currently looking at (`null` -> the start screen's tile picker).
+ * - Whichever screen is active, `state` is simply read out of `games` —
+ *   never regenerated once it exists for a given date+difficulty.
  */
 export function AppShell() {
-  const [gameState, setGameState] = useState<GameState | null>(() => loadGameState());
+  const today = useMemo(() => getTodayDateString(), []);
+  const [games, setGames] = useState<Record<string, GameState>>(() => loadAllGames());
+  const [streak, setStreak] = useState<StreakState>(() => loadStreak());
+  const [selection, setSelection] = useState<Selection>(null);
   const [puzzleError, setPuzzleError] = useState<string | null>(null);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() => !hasSeenTutorial());
 
-  useEffect(() => {
-    if (gameState) {
-      saveGameState(gameState);
+  function handleSelectDifficulty(difficulty: Difficulty) {
+    const key = gameKey(today, difficulty);
+    try {
+      if (!games[key]) {
+        const created = createDailyGameState(today, difficulty);
+        saveGame(created);
+        setGames((prev) => ({ ...prev, [key]: created }));
+      }
+      setPuzzleError(null);
+      setSelection({ difficulty });
+    } catch (error) {
+      console.error("Failed to generate today's puzzle:", error);
+      setPuzzleError("Couldn't load today's puzzle. Please try again.");
     }
-  }, [gameState]);
+  }
 
   function handleGuess(guess: string) {
-    setGameState((prev) => (prev ? submitGuess(prev, guess) : prev));
-  }
+    if (!selection) return;
+    const key = gameKey(today, selection.difficulty);
+    const current = games[key];
+    if (!current) return;
 
-  function handleNewGame(difficulty: Difficulty = gameState?.difficulty ?? "medium") {
-    try {
-      setGameState(createRandomGameState(difficulty));
-      setPuzzleError(null);
-    } catch (error) {
-      console.error("Failed to generate a new puzzle:", error);
-      setPuzzleError("Couldn't find a new puzzle. Please try again.");
+    const updated = submitGuess(current, guess);
+    saveGame(updated);
+    setGames((prev) => ({ ...prev, [key]: updated }));
+
+    if (updated.isWon && !current.isWon) {
+      setStreak(recordDailyCompletion(today));
     }
   }
 
-  /**
-   * Drops the current round entirely and returns to the start screen —
-   * used by both the always-visible header "Home" button and the result
-   * screen's "Change difficulty" action. Clears localStorage too, so a
-   * reload doesn't resurrect the round the player just left.
-   */
   function handleGoHome() {
-    clearGameState();
-    setGameState(null);
+    setSelection(null);
     setPuzzleError(null);
   }
 
-  if (!gameState) {
-    return <StartScreen onStart={handleNewGame} error={puzzleError} />;
+  if (showTutorial) {
+    return (
+      <OnboardingTutorial
+        onDone={() => {
+          markTutorialSeen();
+          setShowTutorial(false);
+        }}
+      />
+    );
   }
 
-  if (gameState.isWon) {
+  if (statsOpen) {
+    return (
+      <StatsPanel
+        games={games}
+        currentStreak={streak.current}
+        longestStreak={streak.longest}
+        onClose={() => setStatsOpen(false)}
+      />
+    );
+  }
+
+  if (!selection) {
+    return (
+      <StartScreen
+        today={today}
+        games={games}
+        currentStreak={streak.current}
+        onSelectDifficulty={handleSelectDifficulty}
+        onOpenStats={() => setStatsOpen(true)}
+        error={puzzleError}
+      />
+    );
+  }
+
+  const state = games[gameKey(today, selection.difficulty)];
+  if (!state) {
+    // handleSelectDifficulty always creates+saves the game before setting
+    // `selection`, so this is unreachable in practice — a defensive
+    // fallback rather than a real code path.
+    return null;
+  }
+
+  if (state.isWon) {
     return (
       <ResultScreen
-        state={gameState}
-        onPlayAgain={() => handleNewGame()}
-        onChangeDifficulty={handleGoHome}
+        state={state}
+        currentStreak={streak.current}
         onHome={handleGoHome}
+        onOpenStats={() => setStatsOpen(true)}
       />
     );
   }
 
   return (
     <GameBoard
-      state={gameState}
+      state={state}
       onGuess={handleGuess}
-      onRestart={() => handleNewGame()}
       onHome={handleGoHome}
+      onOpenStats={() => setStatsOpen(true)}
     />
   );
 }

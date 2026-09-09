@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import confetti from "canvas-confetti";
-import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import type { GameState } from "../game/gameEngine";
 import { AppHeader } from "./AppHeader";
 import { MapView } from "./MapView";
@@ -9,21 +8,20 @@ import styles from "./ResultScreen.module.css";
 
 type ResultScreenProps = {
   state: GameState;
-  onPlayAgain: () => void;
-  /** Returns to the start screen's difficulty picker, dropping this round. */
-  onChangeDifficulty: () => void;
-  /** Always-visible header action — same destination as `onChangeDifficulty`. */
+  currentStreak: number;
   onHome: () => void;
+  onOpenStats: () => void;
 };
 
 /**
- * Shown once the round is won (right after winning, or after a reload
- * that restores a finished game from localStorage). Displays the result
- * summary plus — read-only, with no input field — the map of the final
- * path that was found, and a "Play again" button that starts a brand-new
- * random puzzle.
+ * Shown once a daily challenge is won (right after winning, or after a
+ * reload that restores a finished puzzle from localStorage). Displays
+ * the result summary plus — read-only, with no input field — the map of
+ * the final path that was found. There's no "play again": each
+ * difficulty has exactly one puzzle per day, so the header's Home button
+ * is the only way onward, back to today's other challenges.
  */
-export function ResultScreen({ state, onPlayAgain, onChangeDifficulty, onHome }: ResultScreenProps) {
+export function ResultScreen({ state, currentStreak, onHome, onOpenStats }: ResultScreenProps) {
   useEffect(() => {
     confetti({
       particleCount: 130,
@@ -36,32 +34,21 @@ export function ResultScreen({ state, onPlayAgain, onChangeDifficulty, onHome }:
 
   return (
     <div className={styles.app}>
-      <AppHeader start={state.start} end={state.end} difficulty={state.difficulty} onHome={onHome} />
+      <AppHeader
+        start={state.start}
+        end={state.end}
+        difficulty={state.difficulty}
+        onHome={onHome}
+        onOpenStats={onOpenStats}
+      />
 
       <div className={styles.summaryArea}>
-        <ResultSummary state={state} />
+        <ResultSummary state={state} currentStreak={currentStreak} />
       </div>
 
       <main className={styles.mapArea}>
         <MapView start={state.start} target={state.end} guesses={state.guesses} isWon={state.isWon} />
       </main>
-
-      <footer className={styles.footer}>
-        <div className={styles.actions}>
-          <button type="button" className={styles.playAgainButton} onClick={onPlayAgain}>
-            <RotateCcw size={16} strokeWidth={2.5} />
-            Play again
-          </button>
-          <button
-            type="button"
-            className={styles.changeDifficultyButton}
-            onClick={onChangeDifficulty}
-          >
-            <SlidersHorizontal size={15} strokeWidth={2.5} />
-            <span>Change difficulty</span>
-          </button>
-        </div>
-      </footer>
     </div>
   );
 }

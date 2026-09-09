@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { Check, PartyPopper, Share2, Trophy, X } from "lucide-react";
+import { Check, Link2, PartyPopper, Share2, Trophy, X } from "lucide-react";
 import { getConfirmedChain, type GameState, type Guess } from "../game/gameEngine";
 import { buildEmojiGrid, buildShareText } from "../game/shareResult";
 import { MapView } from "./MapView";
+import { StreakBadge } from "./StreakBadge";
 import styles from "./ResultSummary.module.css";
 
 type ResultSummaryProps = {
   state: GameState;
+  currentStreak: number;
 };
 
 type CopyStatus = "idle" | "copied" | "error";
+type CopyTarget = "text" | "link" | null;
 
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
@@ -42,7 +45,8 @@ async function copyToClipboard(text: string): Promise<boolean> {
  * compared to the optimal step count, plus a Wordle-style emoji grid
  * that can be copied to the clipboard as shareable result text.
  */
-export function ResultSummary({ state }: ResultSummaryProps) {
+export function ResultSummary({ state, currentStreak }: ResultSummaryProps) {
+  const [copyTarget, setCopyTarget] = useState<CopyTarget>(null);
   const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle");
 
   if (!state.isWon) {
@@ -63,14 +67,29 @@ export function ResultSummary({ state }: ResultSummaryProps) {
   }));
 
   async function handleShare() {
-    const success = await copyToClipboard(buildShareText(state));
+    const success = await copyToClipboard(buildShareText(state, currentStreak));
+    setCopyTarget("text");
     setCopyStatus(success ? "copied" : "error");
     setTimeout(() => setCopyStatus("idle"), 2000);
   }
 
-  const ShareIcon = copyStatus === "copied" ? Check : copyStatus === "error" ? X : Share2;
+  async function handleCopyLink() {
+    const success = await copyToClipboard(window.location.origin);
+    setCopyTarget("link");
+    setCopyStatus(success ? "copied" : "error");
+    setTimeout(() => setCopyStatus("idle"), 2000);
+  }
+
+  const shareStatus = copyTarget === "text" ? copyStatus : "idle";
+  const linkStatus = copyTarget === "link" ? copyStatus : "idle";
+
+  const ShareIcon = shareStatus === "copied" ? Check : shareStatus === "error" ? X : Share2;
   const shareLabel =
-    copyStatus === "copied" ? "Copied!" : copyStatus === "error" ? "Copy failed" : "Share";
+    shareStatus === "copied" ? "Copied!" : shareStatus === "error" ? "Copy failed" : "Share";
+
+  const LinkIcon = linkStatus === "copied" ? Check : linkStatus === "error" ? X : Link2;
+  const linkLabel =
+    linkStatus === "copied" ? "Link copied!" : linkStatus === "error" ? "Copy failed" : "Copy link";
 
   return (
     <div className={styles.card} role="status">
@@ -78,6 +97,7 @@ export function ResultSummary({ state }: ResultSummaryProps) {
         <PartyPopper size={20} strokeWidth={2.25} />
         You made it!
       </p>
+      {currentStreak > 0 && <StreakBadge days={currentStreak} />}
       <p className={styles.stats}>
         {steps} {steps === 1 ? "step" : "steps"} · optimal: {optimalSteps}
       </p>
@@ -105,10 +125,16 @@ export function ResultSummary({ state }: ResultSummaryProps) {
         </div>
       )}
 
-      <button type="button" className={styles.shareButton} onClick={handleShare}>
-        <ShareIcon size={16} strokeWidth={2.5} />
-        {shareLabel}
-      </button>
+      <div className={styles.shareRow}>
+        <button type="button" className={styles.shareButton} onClick={handleShare}>
+          <ShareIcon size={16} strokeWidth={2.5} />
+          {shareLabel}
+        </button>
+        <button type="button" className={styles.linkButton} onClick={handleCopyLink}>
+          <LinkIcon size={15} strokeWidth={2.5} />
+          {linkLabel}
+        </button>
+      </div>
     </div>
   );
 }

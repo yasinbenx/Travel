@@ -1,3 +1,4 @@
+import { getDayNumber } from "./dateUtils";
 import { DIFFICULTY_LABEL, getConfirmedChain, type GameState, type GuessQuality } from "./gameEngine";
 
 const QUALITY_EMOJI: Record<GuessQuality, string> = {
@@ -18,21 +19,20 @@ export function buildEmojiGrid(state: GameState): string {
   return state.guesses.map((guess) => QUALITY_EMOJI[guess.quality]).join("");
 }
 
-/** Builds the full result text that gets copied to the clipboard. */
-export function buildShareText(state: GameState): string {
+/**
+ * Builds the full result text that gets copied to the clipboard, e.g.
+ * "BorderHop Day #42 [Medium] 🔥5 - 6/6 steps" followed by the emoji
+ * grid — `currentStreak` is only shown when it's actually active (> 0).
+ */
+export function buildShareText(state: GameState, currentStreak: number): string {
   const steps = getConfirmedChain(state).length;
   const optimalSteps = state.optimalPath.length - 2;
-  const detourGuesses = state.guesses.length - steps;
+  const dayNumber = getDayNumber(state.date);
+  const streakPart = currentStreak > 0 ? ` 🔥${currentStreak}` : "";
 
-  const statsLine =
-    `${steps} ${steps === 1 ? "step" : "steps"} · optimal: ${optimalSteps}` +
-    (detourGuesses > 0
-      ? ` · ${detourGuesses} off-path ${detourGuesses === 1 ? "guess" : "guesses"}`
-      : "");
+  const headerLine =
+    `BorderHop Day #${dayNumber} [${DIFFICULTY_LABEL[state.difficulty]}]${streakPart}` +
+    ` - ${steps}/${optimalSteps} steps`;
 
-  return [
-    `BorderHop [${DIFFICULTY_LABEL[state.difficulty]}] – ${state.start} → ${state.end}`,
-    statsLine,
-    buildEmojiGrid(state),
-  ].join("\n");
+  return [headerLine, buildEmojiGrid(state)].join("\n");
 }

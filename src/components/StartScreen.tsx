@@ -1,21 +1,28 @@
-import { useState } from "react";
-import { Play } from "lucide-react";
-import type { Difficulty } from "../game/gameEngine";
-import { DifficultySelector } from "./DifficultySelector";
+import { BarChart3 } from "lucide-react";
+import { gameKey } from "../game/persistence";
+import type { Difficulty, GameState } from "../game/gameEngine";
+import { DailyChallengeTile } from "./DailyChallengeTile";
 import { Footer } from "./Footer";
+import { StreakBadge } from "./StreakBadge";
 import { WorldSilhouette } from "./WorldSilhouette";
 import styles from "./StartScreen.module.css";
 
 type StartScreenProps = {
-  onStart: (difficulty: Difficulty) => void;
+  today: string;
+  games: Record<string, GameState>;
+  currentStreak: number;
+  onSelectDifficulty: (difficulty: Difficulty) => void;
+  onOpenStats: () => void;
   error?: string | null;
 };
+
+const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
 
 const HOW_TO_PLAY = [
   {
     icon: "🧭",
-    title: "Get a start and a target",
-    description: "Two random countries are picked — one to start from, one to reach.",
+    title: "Pick a difficulty",
+    description: "Easy, Medium, or Hard — each has its own start and target country for today.",
   },
   {
     icon: "🗺️",
@@ -30,16 +37,32 @@ const HOW_TO_PLAY = [
 ];
 
 /**
- * Landing screen: BorderHop is unlimited play, so there's no puzzle to
- * preview yet — clicking "Play" is what generates the first random
- * country pair.
+ * Landing screen: BorderHop is a daily-challenge game, so there are
+ * exactly three puzzles available at any time — one per difficulty, the
+ * same for every player, once per calendar day. Each tile shows whether
+ * that difficulty is still unplayed or already finished today.
  */
-export function StartScreen({ onStart, error }: StartScreenProps) {
-  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
-
+export function StartScreen({
+  today,
+  games,
+  currentStreak,
+  onSelectDifficulty,
+  onOpenStats,
+  error,
+}: StartScreenProps) {
   return (
     <div className={styles.screen}>
       <WorldSilhouette />
+
+      <button
+        type="button"
+        className={styles.statsButton}
+        onClick={onOpenStats}
+        aria-label="View stats"
+        title="View stats"
+      >
+        <BarChart3 size={18} strokeWidth={2.25} />
+      </button>
 
       <div className={styles.content}>
         <div className={styles.hero}>
@@ -47,16 +70,23 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
             <span aria-hidden="true">🌐</span> BorderHop
           </h1>
           <p className={styles.subtitle}>Navigate the world, one border at a time.</p>
+          {currentStreak > 0 && <StreakBadge days={currentStreak} />}
           {error && (
             <p className={styles.error} role="alert">
               {error}
             </p>
           )}
-          <DifficultySelector value={difficulty} onChange={setDifficulty} />
-          <button type="button" className={styles.playButton} onClick={() => onStart(difficulty)}>
-            <Play size={18} strokeWidth={2.5} fill="currentColor" />
-            Play
-          </button>
+        </div>
+
+        <div className={styles.tiles} role="group" aria-label="Today's daily challenges">
+          {DIFFICULTIES.map((difficulty) => (
+            <DailyChallengeTile
+              key={difficulty}
+              difficulty={difficulty}
+              game={games[gameKey(today, difficulty)]}
+              onClick={() => onSelectDifficulty(difficulty)}
+            />
+          ))}
         </div>
 
         <ol className={styles.steps}>

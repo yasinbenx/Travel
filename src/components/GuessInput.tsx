@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { countryAdjacency } from "../data/countryAdjacency";
 import { normalize } from "../game/gameEngine";
 import styles from "./GuessInput.module.css";
@@ -29,6 +29,7 @@ export function GuessInput({
   const [value, setValue] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isOpen, setIsOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const excluded = useMemo(() => new Set(excludeNames), [excludeNames]);
 
@@ -94,6 +95,7 @@ export function GuessInput({
   return (
     <div className={styles.wrapper}>
       <input
+        ref={inputRef}
         className={`${styles.input} ${feedbackClass}`}
         type="text"
         autoComplete="off"
@@ -104,7 +106,14 @@ export function GuessInput({
         disabled={disabled}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        onFocus={() => setIsOpen(true)}
+        onFocus={() => {
+          setIsOpen(true);
+          // On mobile, the on-screen keyboard can otherwise cover the
+          // input (or its autocomplete dropdown) right after it opens.
+          setTimeout(() => {
+            inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+          }, 300);
+        }}
         onBlur={() => setIsOpen(false)}
         aria-autocomplete="list"
         aria-expanded={showDropdown}

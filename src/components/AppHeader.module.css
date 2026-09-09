@@ -44,22 +44,14 @@
 }
 
 .iconButton:hover {
-  background: var(--wrong-bg);
-  color: var(--wrong-text);
-}
-
-.spinOnHover:hover {
-  transform: rotate(-25deg);
+  background: var(--surface);
+  color: var(--color-primary);
+  transform: translateY(-2px);
 }
 
 @media (max-width: 480px) {
   .header {
     padding: 0.55rem 0.8rem;
     gap: 0.6rem;
-  }
-
-  .iconButton {
-    width: 2.5rem;
-    height: 2.5rem;
   }
 }

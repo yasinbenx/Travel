@@ -1,63 +1,82 @@
-import type { GameState } from "./gameEngine";
+import type { Difficulty, GameState } from "./gameEngine";
 
-const STORAGE_KEY = "borderhop:current-game";
+const GAMES_KEY = "borderhop:games";
+const TUTORIAL_SEEN_KEY = "borderhop:tutorial-seen";
+
+/** The storage/lookup key for one calendar date's puzzle at one difficulty. */
+export function gameKey(date: string, difficulty: Difficulty): string {
+  return `${date}:${difficulty}`;
+}
 
 function isGameState(value: unknown): value is GameState {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
   return (
+    typeof candidate.date === "string" &&
+    (candidate.difficulty === "easy" ||
+      candidate.difficulty === "medium" ||
+      candidate.difficulty === "hard") &&
     typeof candidate.start === "string" &&
     typeof candidate.end === "string" &&
     Array.isArray(candidate.optimalPath) &&
     Array.isArray(candidate.guesses) &&
-    typeof candidate.isWon === "boolean" &&
-    (candidate.difficulty === "easy" ||
-      candidate.difficulty === "medium" ||
-      candidate.difficulty === "hard")
+    typeof candidate.isWon === "boolean"
   );
 }
 
 /**
- * Loads the current game state from localStorage, if any. Returns `null`
- * if nothing is stored yet, or if the stored data no longer matches the
- * expected shape (e.g. after a format change) — the round then simply
- * starts fresh instead of crashing on a broken state.
+ * Loads every daily game ever played, keyed by {@link gameKey}. Entries
+ * that no longer match the expected shape (e.g. after a format change)
+ * are silently dropped rather than crashing the whole load.
  */
-export function loadGameState(): GameState | null {
+export function loadAllGames(): Record<string, GameState> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
+    const raw = localStorage.getItem(GAMES_KEY);
+    if (!raw) return {};
     const parsed: unknown = JSON.parse(raw);
-    return isGameState(parsed) ? parsed : null;
+    if (typeof parsed !== "object" || parsed === null) return {};
+
+    const result: Record<string, GameState> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (isGameState(value)) {
+        result[key] = value;
+      }
+    }
+    return result;
   } catch {
-    return null;
+    return {};
   }
 }
 
 /**
- * Saves the current game state so a reload mid-round (or right after
- * winning) doesn't lose it. If saving fails (private browsing, quota
- * full, …), the error is deliberately swallowed — persistence is a
- * convenience feature, not a reason to break the game.
+ * Saves one daily game's current state (in progress or finished) into
+ * the persisted collection, so a reload resumes it exactly where it was
+ * left off and a finished puzzle can never be "replayed" as new.
  */
-export function saveGameState(state: GameState): void {
+export function saveGame(state: GameState): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const all = loadAllGames();
+    all[gameKey(state.date, state.difficulty)] = state;
+    localStorage.setItem(GAMES_KEY, JSON.stringify(all));
   } catch {
     // Save skipped (e.g. private browsing or quota exceeded).
   }
 }
 
-/**
- * Removes the saved game state, e.g. when the player navigates back to
- * the start screen — without this, a reload would otherwise resurrect
- * the game they just left.
- */
-export function clearGameState(): void {
+/** Whether the first-visit onboarding tutorial has already been shown (completed or skipped). */
+export function hasSeenTutorial(): boolean {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    return localStorage.getItem(TUTORIAL_SEEN_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+/** Marks the onboarding tutorial as seen, so it never shows again on this device. */
+export function markTutorialSeen(): void {
+  try {
+    localStorage.setItem(TUTORIAL_SEEN_KEY, "true");
   } catch {
     // Nothing to do if storage access itself fails.
   }
 }
-
