@@ -1,33 +1,48 @@
 import { useMemo, useState } from "react";
 import { createDailyGameState } from "../game/dailyGameState";
 import { getTodayDateString } from "../game/dateUtils";
+import { createDailyDrawState, submitDrawing, type DrawGameState } from "../game/drawGameState";
+import type { Point } from "../game/drawScoring";
 import { giveUp, submitGuess, type Difficulty, type GameState } from "../game/gameEngine";
-import { gameKey, hasSeenTutorial, loadAllGames, markTutorialSeen, saveGame } from "../game/persistence";
+import {
+  gameKey,
+  hasSeenTutorial,
+  loadAllDrawGames,
+  loadAllGames,
+  markTutorialSeen,
+  saveDrawGame,
+  saveGame,
+} from "../game/persistence";
 import { loadStreak, recordDailyCompletion, type StreakState } from "../game/streak";
+import { DrawModeScreen } from "./DrawModeScreen";
+import { DrawResultScreen } from "./DrawResultScreen";
 import { GameBoard } from "./GameBoard";
 import { OnboardingTutorial } from "./OnboardingTutorial";
 import { ResultScreen } from "./ResultScreen";
 import { StartScreen } from "./StartScreen";
 import { StatsPanel } from "./StatsPanel";
 
-type Selection = { difficulty: Difficulty } | null;
+type Selection = { mode: "puzzle"; difficulty: Difficulty } | { mode: "draw" } | null;
 
 /**
- * Top-level component. BorderHop has exactly three puzzles available at
- * any time — today's easy/medium/hard daily challenges, the same for
- * every player, each playable exactly once per calendar day:
- * - `games` holds every daily puzzle ever played (in progress or
- *   finished), keyed by `${date}:${difficulty}` and persisted to
- *   localStorage on every guess, so nothing is ever lost and a finished
- *   puzzle can never be started over as "new".
- * - `selection` is which of today's three challenges the player is
+ * Top-level component. BorderHop has exactly four daily challenges
+ * available at any time — easy/medium/hard (the border-hop puzzle) plus
+ * Draw It, the same for every player, each playable exactly once per
+ * calendar day:
+ * - `games` holds every border-hop puzzle ever played, keyed by
+ *   `${date}:${difficulty}`; `drawGames` holds every Draw It round ever
+ *   played, keyed by date alone (only one per day). Both persist to
+ *   localStorage on every change, so nothing is ever lost and a finished
+ *   round can never be started over as "new".
+ * - `selection` is which of today's four challenges the player is
  *   currently looking at (`null` -> the start screen's tile picker).
- * - Whichever screen is active, `state` is simply read out of `games` —
- *   never regenerated once it exists for a given date+difficulty.
+ * - Whichever screen is active, state is simply read out of `games`/
+ *   `drawGames` — never regenerated once it exists for a given date.
  */
 export function AppShell() {
   const today = useMemo(() => getTodayDateString(), []);
   const [games, setGames] = useState<Record<string, GameState>>(() => loadAllGames());
+  const [drawGames, setDrawGames] = useState<Record<string, DrawGameState>>(() => loadAllDrawGames());
   const [streak, setStreak] = useState<StreakState>(() => loadStreak());
   const [selection, setSelection] = useState<Selection>(null);
   const [puzzleError, setPuzzleError] = useState<string | null>(null);
@@ -43,15 +58,30 @@ export function AppShell() {
         setGames((prev) => ({ ...prev, [key]: created }));
       }
       setPuzzleError(null);
-      setSelection({ difficulty });
+      setSelection({ mode: "puzzle", difficulty });
     } catch (error) {
       console.error("Failed to generate today's puzzle:", error);
       setPuzzleError("Couldn't load today's puzzle. Please try again.");
     }
   }
 
+  function handleSelectDraw() {
+    try {
+      if (!drawGames[today]) {
+        const created = createDailyDrawState(today);
+        saveDrawGame(created);
+        setDrawGames((prev) => ({ ...prev, [today]: created }));
+      }
+      setPuzzleError(null);
+      setSelection({ mode: "draw" });
+    } catch (error) {
+      console.error("Failed to generate today's Draw It challenge:", error);
+      setPuzzleError("Couldn't load today's Draw It challenge. Please try again.");
+    }
+  }
+
   function handleGuess(guess: string) {
-    if (!selection) return;
+    if (selection?.mode !== "puzzle") return;
     const key = gameKey(today, selection.difficulty);
     const current = games[key];
     if (!current) return;
@@ -66,7 +96,7 @@ export function AppShell() {
   }
 
   function handleGiveUp() {
-    if (!selection) return;
+    if (selection?.mode !== "puzzle") return;
     const key = gameKey(today, selection.difficulty);
     const current = games[key];
     if (!current) return;
@@ -78,6 +108,21 @@ export function AppShell() {
     // A given-up round still keeps the streak alive, same as a win —
     // any completed challenge counts, per the "at least one per day" rule.
     if (updated.isGivenUp && !current.isGivenUp) {
+      setStreak(recordDailyCompletion(today));
+    }
+  }
+
+  function handleSubmitDrawing(points: Point[]) {
+    const current = drawGames[today];
+    if (!current) return;
+
+    const updated = submitDrawing(current, points);
+    saveDrawGame(updated);
+    setDrawGames((prev) => ({ ...prev, [today]: updated }));
+
+    // Draw It is the 4th daily challenge — completing it (all 5
+    // countries drawn) keeps the streak alive too, same as any other.
+    if (updated.isCompleted && !current.isCompleted) {
       setStreak(recordDailyCompletion(today));
     }
   }
@@ -102,6 +147,7 @@ export function AppShell() {
     return (
       <StatsPanel
         games={games}
+        drawGames={drawGames}
         currentStreak={streak.current}
         longestStreak={streak.longest}
         onClose={() => setStatsOpen(false)}
@@ -114,10 +160,41 @@ export function AppShell() {
       <StartScreen
         today={today}
         games={games}
+        drawGames={drawGames}
         currentStreak={streak.current}
         onSelectDifficulty={handleSelectDifficulty}
+        onSelectDraw={handleSelectDraw}
         onOpenStats={() => setStatsOpen(true)}
         error={puzzleError}
+      />
+    );
+  }
+
+  if (selection.mode === "draw") {
+    const drawState = drawGames[today];
+    if (!drawState) {
+      // handleSelectDraw always creates+saves the state before setting
+      // `selection`, so this is unreachable in practice — a defensive
+      // fallback rather than a real code path.
+      return null;
+    }
+
+    if (drawState.isCompleted) {
+      return (
+        <DrawResultScreen
+          state={drawState}
+          onHome={handleGoHome}
+          onOpenStats={() => setStatsOpen(true)}
+        />
+      );
+    }
+
+    return (
+      <DrawModeScreen
+        state={drawState}
+        onSubmitDrawing={handleSubmitDrawing}
+        onHome={handleGoHome}
+        onOpenStats={() => setStatsOpen(true)}
       />
     );
   }

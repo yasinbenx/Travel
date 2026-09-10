@@ -1,6 +1,8 @@
+import type { DrawGameState } from "./drawGameState";
 import type { Difficulty, GameState } from "./gameEngine";
 
 const GAMES_KEY = "borderhop:games";
+const DRAW_GAMES_KEY = "borderhop:draw-games";
 const TUTORIAL_SEEN_KEY = "borderhop:tutorial-seen";
 
 /** The storage/lookup key for one calendar date's puzzle at one difficulty. */
@@ -59,6 +61,56 @@ export function saveGame(state: GameState): void {
     const all = loadAllGames();
     all[gameKey(state.date, state.difficulty)] = state;
     localStorage.setItem(GAMES_KEY, JSON.stringify(all));
+  } catch {
+    // Save skipped (e.g. private browsing or quota exceeded).
+  }
+}
+
+function isDrawGameState(value: unknown): value is DrawGameState {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.date === "string" &&
+    Array.isArray(candidate.countries) &&
+    typeof candidate.currentIndex === "number" &&
+    Array.isArray(candidate.scores) &&
+    Array.isArray(candidate.drawings) &&
+    Array.isArray(candidate.rotations) &&
+    typeof candidate.isCompleted === "boolean"
+  );
+}
+
+/**
+ * Loads every Draw It daily challenge ever played, keyed by calendar
+ * date (there's only ever one Draw It challenge per day, unlike the
+ * difficulty-keyed border-hop games). Malformed entries are silently
+ * dropped rather than crashing the whole load.
+ */
+export function loadAllDrawGames(): Record<string, DrawGameState> {
+  try {
+    const raw = localStorage.getItem(DRAW_GAMES_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return {};
+
+    const result: Record<string, DrawGameState> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (isDrawGameState(value)) {
+        result[key] = value;
+      }
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+/** Saves one day's Draw It state (in progress or finished), keyed by its own date. */
+export function saveDrawGame(state: DrawGameState): void {
+  try {
+    const all = loadAllDrawGames();
+    all[state.date] = state;
+    localStorage.setItem(DRAW_GAMES_KEY, JSON.stringify(all));
   } catch {
     // Save skipped (e.g. private browsing or quota exceeded).
   }

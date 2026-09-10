@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { DrawGameState } from "./drawGameState";
 import type { Difficulty, GameState } from "./gameEngine";
 import { gameKey } from "./persistence";
-import { computeHistory, computeQualityDistribution, computeStats } from "./stats";
+import { computeDrawStats, computeHistory, computeQualityDistribution, computeStats } from "./stats";
 
 function makeGame(overrides: Partial<GameState> = {}): GameState {
   return {
@@ -203,5 +204,50 @@ describe("computeHistory", () => {
     };
     const history = computeHistory(games, today, 1);
     expect(history[0].status).toBe("perfect");
+  });
+});
+
+function makeDrawGame(overrides: Partial<DrawGameState> = {}): DrawGameState {
+  return {
+    date: "2026-01-01",
+    countries: ["Germany", "France", "Italy", "Spain", "Poland"],
+    currentIndex: 5,
+    scores: [8.0, 6.5, 7.0, 9.1, 5.4],
+    drawings: [[], [], [], [], []],
+    rotations: [0, 0, 0, 0, 0],
+    isCompleted: true,
+    ...overrides,
+  };
+}
+
+describe("computeDrawStats", () => {
+  it("returns all-null/zero stats for an empty collection", () => {
+    expect(computeDrawStats({})).toEqual({ daysPlayed: 0, averageScore: null, bestScore: null });
+  });
+
+  it("ignores an in-progress (not yet completed) day", () => {
+    const games = {
+      a: makeDrawGame({ isCompleted: false, currentIndex: 2, scores: [8.0, 6.5] }),
+    };
+    expect(computeDrawStats(games)).toEqual({ daysPlayed: 0, averageScore: null, bestScore: null });
+  });
+
+  it("computes days played, average score, and best score for one completed day", () => {
+    const games = { a: makeDrawGame() }; // scores: 8.0, 6.5, 7.0, 9.1, 5.4 -> avg 7.2, best 9.1
+    const stats = computeDrawStats(games);
+    expect(stats.daysPlayed).toBe(1);
+    expect(stats.averageScore).toBeCloseTo(7.2, 5);
+    expect(stats.bestScore).toBe(9.1);
+  });
+
+  it("averages across multiple completed days and finds the overall best score", () => {
+    const games = {
+      a: makeDrawGame({ date: "2026-01-01", scores: [10, 10, 10, 10, 10] }), // day avg 10
+      b: makeDrawGame({ date: "2026-01-02", scores: [0, 0, 0, 0, 0] }), // day avg 0
+    };
+    const stats = computeDrawStats(games);
+    expect(stats.daysPlayed).toBe(2);
+    expect(stats.averageScore).toBe(5); // average of the two DAY averages (10 and 0), not a flat mean of all 10 scores
+    expect(stats.bestScore).toBe(10);
   });
 });

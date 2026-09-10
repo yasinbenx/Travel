@@ -63,6 +63,14 @@
   background: var(--color-accent);
 }
 
+/* Used by DrawChallengeTile instead of the 3-bar difficulty meter, since "difficulty" doesn't apply to Draw It. */
+.icon {
+  display: flex;
+  align-items: center;
+  height: 0.85rem;
+  color: var(--color-accent);
+}
+
 .label {
   font-family: var(--heading);
   font-size: 0.85rem;

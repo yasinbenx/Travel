@@ -1,4 +1,5 @@
 import { getPreviousDateString } from "./dateUtils";
+import type { DrawGameState } from "./drawGameState";
 import {
   getValidIntermediateCountries,
   type Difficulty,
@@ -123,4 +124,39 @@ export function computeHistory(
     date = getPreviousDateString(date);
   }
   return entries;
+}
+
+export type DrawStats = {
+  daysPlayed: number;
+  /** Average of each completed day's own average score, rounded to one decimal; `null` if never completed. */
+  averageScore: number | null;
+  /** The single best score ever recorded across all completed days, rounded to one decimal; `null` if never completed. */
+  bestScore: number | null;
+};
+
+/**
+ * Aggregates Draw It stats purely from its own stored games collection.
+ * Only completed days (all 5 countries drawn) count — a day abandoned
+ * partway through has no meaningful "day average" yet.
+ */
+export function computeDrawStats(drawGames: Record<string, DrawGameState>): DrawStats {
+  const completed = Object.values(drawGames).filter((game) => game.isCompleted);
+
+  if (completed.length === 0) {
+    return { daysPlayed: 0, averageScore: null, bestScore: null };
+  }
+
+  let overallSum = 0;
+  let bestScore = -Infinity;
+  for (const game of completed) {
+    const daySum = game.scores.reduce((total, score) => total + score, 0);
+    overallSum += daySum / game.scores.length;
+    bestScore = Math.max(bestScore, ...game.scores);
+  }
+
+  return {
+    daysPlayed: completed.length,
+    averageScore: Math.round((overallSum / completed.length) * 10) / 10,
+    bestScore: Math.round(bestScore * 10) / 10,
+  };
 }

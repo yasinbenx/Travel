@@ -1,8 +1,14 @@
 import type { ReactNode } from "react";
-import { CalendarDays, Compass, Flame, Sparkles, Trophy, X } from "lucide-react";
+import { CalendarDays, Compass, Flame, Palette, Sparkles, Star, Trophy, X } from "lucide-react";
+import type { DrawGameState } from "../game/drawGameState";
 import { getTodayDateString } from "../game/dateUtils";
 import type { Difficulty, GameState } from "../game/gameEngine";
-import { computeHistory, computeQualityDistribution, computeStats } from "../game/stats";
+import {
+  computeDrawStats,
+  computeHistory,
+  computeQualityDistribution,
+  computeStats,
+} from "../game/stats";
 import { DifficultyBadge } from "./DifficultyBadge";
 import { HistoryCalendar } from "./HistoryCalendar";
 import { QualityDistributionRing } from "./QualityDistributionRing";
@@ -12,6 +18,7 @@ import styles from "./StatsPanel.module.css";
 
 type StatsPanelProps = {
   games: Record<string, GameState>;
+  drawGames: Record<string, DrawGameState>;
   currentStreak: number;
   longestStreak: number;
   onClose: () => void;
@@ -24,17 +31,23 @@ type OverviewTileProps = {
   value: number;
   label: string;
   wide?: boolean;
+  /** Decimal places for the count-up (and its final display) — 0 for a plain integer count, 1 for a "7.2"-style score. */
+  decimals?: number;
+  suffix?: string;
 };
 
-/** One overview tile with a count-up animated integer value. */
-function OverviewTile({ icon, value, label, wide }: OverviewTileProps) {
-  const animated = useCountUp(value);
+/** One overview tile with a count-up animated value. */
+function OverviewTile({ icon, value, label, wide, decimals = 0, suffix = "" }: OverviewTileProps) {
+  const animated = useCountUp(value, 1100, decimals);
   return (
     <div className={wide ? `${styles.tile} ${styles.tileWide}` : styles.tile}>
       <span className={styles.tileIcon} aria-hidden="true">
         {icon}
       </span>
-      <p className={styles.tileValue}>{animated}</p>
+      <p className={styles.tileValue}>
+        {decimals > 0 ? animated.toFixed(decimals) : animated}
+        {suffix}
+      </p>
       <p className={styles.tileLabel}>{label}</p>
     </div>
   );
@@ -46,11 +59,12 @@ function OverviewTile({ icon, value, label, wide }: OverviewTileProps) {
  * the last 10 days — or, if nothing has ever been played, a friendly
  * empty state instead of a wall of zeroes.
  */
-export function StatsPanel({ games, currentStreak, longestStreak, onClose }: StatsPanelProps) {
+export function StatsPanel({ games, drawGames, currentStreak, longestStreak, onClose }: StatsPanelProps) {
   const stats = computeStats(games);
   const distribution = computeQualityDistribution(games);
   const history = computeHistory(games, getTodayDateString(), 10);
-  const hasPlayed = stats.totalPlayed > 0;
+  const drawStats = computeDrawStats(drawGames);
+  const hasPlayed = stats.totalPlayed > 0 || drawStats.daysPlayed > 0;
 
   return (
     <div className={styles.screen}>
@@ -158,6 +172,35 @@ export function StatsPanel({ games, currentStreak, longestStreak, onClose }: Sta
               </p>
               <div className={styles.card}>
                 <HistoryCalendar history={history} />
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <p className={styles.sectionHeading}>
+                <Palette size={14} strokeWidth={2.5} />
+                Draw It
+              </p>
+              <div className={styles.grid}>
+                <OverviewTile
+                  icon={<Compass size={20} strokeWidth={2.25} />}
+                  value={drawStats.daysPlayed}
+                  label="Days played"
+                />
+                <OverviewTile
+                  icon={<Star size={20} strokeWidth={2.25} />}
+                  value={drawStats.bestScore ?? 0}
+                  label="Best score"
+                  decimals={drawStats.bestScore !== null ? 1 : 0}
+                  suffix={drawStats.bestScore !== null ? "/10" : ""}
+                />
+                <OverviewTile
+                  icon={<Sparkles size={20} strokeWidth={2.25} />}
+                  value={drawStats.averageScore ?? 0}
+                  label="Average score"
+                  wide
+                  decimals={drawStats.averageScore !== null ? 1 : 0}
+                  suffix={drawStats.averageScore !== null ? "/10" : ""}
+                />
               </div>
             </section>
           </>

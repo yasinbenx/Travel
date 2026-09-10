@@ -1,7 +1,9 @@
 import { BarChart3 } from "lucide-react";
+import type { DrawGameState } from "../game/drawGameState";
 import { gameKey } from "../game/persistence";
 import type { Difficulty, GameState } from "../game/gameEngine";
 import { DailyChallengeTile } from "./DailyChallengeTile";
+import { DrawChallengeTile } from "./DrawChallengeTile";
 import { Footer } from "./Footer";
 import { StreakBadge } from "./StreakBadge";
 import { WorldSilhouette } from "./WorldSilhouette";
@@ -10,8 +12,10 @@ import styles from "./StartScreen.module.css";
 type StartScreenProps = {
   today: string;
   games: Record<string, GameState>;
+  drawGames: Record<string, DrawGameState>;
   currentStreak: number;
   onSelectDifficulty: (difficulty: Difficulty) => void;
+  onSelectDraw: () => void;
   onOpenStats: () => void;
   error?: string | null;
 };
@@ -45,8 +49,10 @@ const HOW_TO_PLAY = [
 export function StartScreen({
   today,
   games,
+  drawGames,
   currentStreak,
   onSelectDifficulty,
+  onSelectDraw,
   onOpenStats,
   error,
 }: StartScreenProps) {
@@ -87,6 +93,7 @@ export function StartScreen({
               onClick={() => onSelectDifficulty(difficulty)}
             />
           ))}
+          <DrawChallengeTile drawState={drawGames[today]} onClick={onSelectDraw} />
         </div>
 
         <ol className={styles.steps}>
